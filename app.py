@@ -64,20 +64,35 @@ for folder in [data_folder, upload_folder, vault_folder, heritage_folder]:
 
 # Configuration de l'application
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'nyanga-2.0-ultra-secure-key-joyed-cameroon-2025'
+
+# SECRET_KEY: utilise la variable d'environnement ou valeur par défaut pour dev
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nyanga-2.0-ultra-secure-key-joyed-cameroon-2025')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Max 16MB par fichier
 app.config['UPLOAD_FOLDER'] = upload_folder
 app.config['VAULT_FOLDER'] = vault_folder
 app.config['HERITAGE_FOLDER'] = heritage_folder
 app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'png', 'jpg', 'jpeg', 'txt', 'doc', 'docx'}
 
-# Base de données
-db_path = os.path.join(data_folder, 'nyanga_v2.db')
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+# Base de données - Support PostgreSQL (Render) ET SQLite (local)
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL:
+    # Production: PostgreSQL sur Render
+    # Fix pour le format postgresql:// -> postgresql://
+    if DATABASE_URL.startswith('postgres://'):
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+    print(f"[OK] Utilisation de PostgreSQL (Production)")
+else:
+    # Développement local: SQLite
+    db_path = os.path.join(data_folder, 'nyanga_v2.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+    print(f"[OK] Utilisation de SQLite (Développement local)")
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Clé maître de cryptage (EN PRODUCTION: utiliser variable d'environnement!)
-MASTER_ENCRYPTION_KEY = b'YourSecureMasterKey32BytesHere!!'  # 32 bytes pour Fernet
+# Clé maître de cryptage (utilise variable d'environnement en production)
+MASTER_ENCRYPTION_KEY_STR = os.environ.get('MASTER_ENCRYPTION_KEY', 'YourSecureMasterKey32BytesHere!!')
+MASTER_ENCRYPTION_KEY = MASTER_ENCRYPTION_KEY_STR.encode() if isinstance(MASTER_ENCRYPTION_KEY_STR, str) else MASTER_ENCRYPTION_KEY_STR
 
 # Initialisation de la base de données
 db = SQLAlchemy(app)

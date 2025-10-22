@@ -1,7 +1,10 @@
 services:
+  # Web Service - Application Flask
   - type: web
     name: nyangabudget
     env: python
+    region: frankfurt  # Europe (plus proche du Cameroun)
+    plan: free  # Plan gratuit
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
@@ -9,3 +12,18 @@ services:
         value: 3.11.0
       - key: SECRET_KEY
         generateValue: true
+      - key: MASTER_ENCRYPTION_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nyangabudget-db
+          property: connectionString
+    healthCheckPath: /
+
+  # Base de données PostgreSQL
+  - type: pserv
+    name: nyangabudget-db
+    env: docker
+    region: frankfurt
+    plan: free  # PostgreSQL gratuit (expire après 90 jours - à renouveler)
+    ipAllowList: []  # Accessible depuis n'importe où
