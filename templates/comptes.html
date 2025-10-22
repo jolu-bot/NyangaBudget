@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+
+{% block title %}Comptes Bancaires - NyangaBudget{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-bank me-2"></i>Mes Comptes Bancaires</h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCompteModal">
+                <i class="bi bi-plus-circle me-1"></i>Nouveau Compte
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Solde Total -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow-sm border-primary">
+            <div class="card-body text-center">
+                <h5 class="text-muted">Solde Total</h5>
+                <h1 class="display-4 text-primary fw-bold">{{ "{:,.0f}".format(solde_total) }} FCFA</h1>
+                <p class="text-muted mb-0">Somme de tous vos comptes</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des Comptes -->
+<div class="row mb-4">
+    {% if comptes %}
+        {% for compte in comptes %}
+        <div class="col-md-6 col-lg-4 mb-3">
+            <div class="card h-100 shadow-sm" style="border-left: 5px solid {{ compte.couleur }};">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="card-title">
+                            <i class="bi {{ compte.icone }} me-2" style="color: {{ compte.couleur }};"></i>
+                            {{ compte.nom }}
+                        </h5>
+                        {% if compte.est_principal %}
+                        <span class="badge bg-success">Principal</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-muted mb-1">
+                        <small><i class="bi bi-credit-card me-1"></i>{{ compte.type_compte|title }}</small>
+                    </p>
+                    {% if compte.numero_compte %}
+                    <p class="text-muted mb-2"><small>{{ compte.numero_compte }}</small></p>
+                    {% endif %}
+                    <h3 class="text-primary fw-bold">{{ "{:,.0f}".format(compte.solde_actuel) }} FCFA</h3>
+                    <div class="d-flex gap-2 mt-3">
+                        <button class="btn btn-sm btn-outline-danger"
+                                onclick="if(confirm('Supprimer ce compte?')) document.getElementById('deleteForm{{ compte.id }}').submit();">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        <form id="deleteForm{{ compte.id }}" method="POST"
+                              action="{{ url_for('delete_compte', id=compte.id) }}" style="display: none;">
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle me-2"></i>
+                Vous n'avez pas encore de compte bancaire. Créez-en un pour commencer!
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Section Transferts -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-arrow-left-right me-2"></i>Transferts Inter-Comptes</h5>
+            </div>
+            <div class="card-body">
+                {% if comptes|length >= 2 %}
+                <button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#transfertModal">
+                    <i class="bi bi-arrow-repeat me-1"></i>Nouveau Transfert
+                </button>
+                {% else %}
+                <p class="text-muted">Vous devez avoir au moins 2 comptes pour effectuer des transferts.</p>
+                {% endif %}
+
+                <!-- Historique des Transferts -->
+                {% if transferts %}
+                <h6 class="fw-bold mt-4">Historique</h6>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>De</th>
+                                <th>Vers</th>
+                                <th>Montant</th>
+                                <th>Hash</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in transferts %}
+                            <tr>
+                                <td>{{ t.date_created.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td><i class="bi {{ t.compte_source.icone }}"></i> {{ t.compte_source.nom }}</td>
+                                <td><i class="bi {{ t.compte_destination.icone }}"></i> {{ t.compte_destination.nom }}</td>
+                                <td class="fw-bold">{{ "{:,.0f}".format(t.montant) }} FCFA</td>
+                                <td><small class="text-muted font-monospace">{{ t.hash_transaction[:12] }}...</small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">Aucun transfert effectué.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nouveau Compte -->
+<div class="modal fade" id="addCompteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('add_compte') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Nouveau Compte</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nom du Compte *</label>
+                        <input type="text" class="form-control" name="nom" required
+                               placeholder="Ex: Orange Money, Afriland, Compte Épargne">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Type de Compte *</label>
+                        <select class="form-select" name="type_compte" required>
+                            <option value="mobile_money">Mobile Money</option>
+                            <option value="banque">Compte Bancaire</option>
+                            <option value="epargne">Compte Épargne</option>
+                            <option value="cash">Cash</option>
+                            <option value="crypto">Crypto</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Numéro de Compte</label>
+                        <input type="text" class="form-control" name="numero_compte"
+                               placeholder="Optionnel">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Solde Initial</label>
+                        <input type="number" class="form-control" name="solde_initial"
+                               value="0" step="1">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Couleur</label>
+                            <input type="color" class="form-control form-control-color"
+                                   name="couleur" value="#007bff">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Icône</label>
+                            <select class="form-select" name="icone">
+                                <option value="bi-wallet2">💳 Wallet</option>
+                                <option value="bi-bank">🏦 Banque</option>
+                                <option value="bi-cash-coin">💰 Cash</option>
+                                <option value="bi-piggy-bank">🐷 Épargne</option>
+                                <option value="bi-currency-bitcoin">₿ Crypto</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Créer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Transfert -->
+<div class="modal fade" id="transfertModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('transfert_compte') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-arrow-left-right me-2"></i>Transfert Inter-Comptes</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Compte Source *</label>
+                        <select class="form-select" name="compte_source_id" required>
+                            <option value="">Sélectionnez...</option>
+                            {% for compte in comptes %}
+                            <option value="{{ compte.id }}">
+                                {{ compte.nom }} ({{ "{:,.0f}".format(compte.solde_actuel) }} FCFA)
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="text-center my-2">
+                        <i class="bi bi-arrow-down fs-3 text-primary"></i>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Compte Destination *</label>
+                        <select class="form-select" name="compte_destination_id" required>
+                            <option value="">Sélectionnez...</option>
+                            {% for compte in comptes %}
+                            <option value="{{ compte.id }}">{{ compte.nom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Montant *</label>
+                        <input type="number" class="form-control" name="montant"
+                               required min="1" step="1">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Motif</label>
+                        <input type="text" class="form-control" name="motif"
+                               placeholder="Optionnel">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-arrow-repeat me-1"></i>Effectuer le Transfert
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

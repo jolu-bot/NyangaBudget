@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}Héritage Familial - NyangaBudget{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="text-primary">
+        <i class="bi bi-gift me-2"></i>Testament Numérique
+    </h2>
+    <p class="text-muted">Organisez votre succession et protégez vos proches</p>
+</div>
+
+<div class="row">
+    <!-- Bouton d'ajout -->
+    <div class="col-12 mb-4">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addHeritageModal">
+            <i class="bi bi-plus-circle me-2"></i>Ajouter un bien
+        </button>
+    </div>
+
+    <!-- Liste des biens d'héritage -->
+    <div class="col-12">
+        {% if heritages %}
+            <div class="row">
+                {% for heritage in heritages %}
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="card-title mb-0">
+                                    {% if heritage.type_bien == 'immobilier' %}
+                                        <i class="bi bi-house-door text-primary me-2"></i>
+                                    {% elif heritage.type_bien == 'vehicule' %}
+                                        <i class="bi bi-car-front text-success me-2"></i>
+                                    {% elif heritage.type_bien == 'compte' %}
+                                        <i class="bi bi-bank text-info me-2"></i>
+                                    {% elif heritage.type_bien == 'objet_valeur' %}
+                                        <i class="bi bi-gem text-warning me-2"></i>
+                                    {% elif heritage.type_bien == 'document' %}
+                                        <i class="bi bi-file-earmark-text text-secondary me-2"></i>
+                                    {% else %}
+                                        <i class="bi bi-box text-muted me-2"></i>
+                                    {% endif %}
+                                    {{ heritage.titre }}
+                                </h5>
+                                <span class="badge bg-secondary">
+                                    {% if heritage.type_bien == 'immobilier' %}Immobilier
+                                    {% elif heritage.type_bien == 'vehicule' %}Véhicule
+                                    {% elif heritage.type_bien == 'compte' %}Compte
+                                    {% elif heritage.type_bien == 'objet_valeur' %}Objet de valeur
+                                    {% elif heritage.type_bien == 'document' %}Document
+                                    {% else %}{{ heritage.type_bien }}
+                                    {% endif %}
+                                </span>
+                            </div>
+
+                            <p class="text-muted small mb-3">{{ heritage.description }}</p>
+
+                            <div class="alert alert-info mb-3">
+                                <i class="bi bi-cash-stack me-2"></i>
+                                <strong>Valeur estimée:</strong> {{ "{:,.0f}".format(heritage.valeur_estimee) }} FCFA
+                            </div>
+
+                            <!-- Bénéficiaires -->
+                            {% if heritage.beneficiaires %}
+                            <div class="mb-3">
+                                <h6 class="text-muted mb-2">
+                                    <i class="bi bi-people me-2"></i>Bénéficiaires:
+                                </h6>
+                                <ul class="list-group list-group-flush">
+                                    {% for benef in heritage.beneficiaires %}
+                                    <li class="list-group-item px-0 py-2">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ benef.beneficiaire.nom }}</strong>
+                                                {% if benef.message_personnel %}
+                                                <br><small class="text-muted">{{ benef.message_personnel }}</small>
+                                                {% endif %}
+                                            </div>
+                                            <span class="badge bg-primary">{{ benef.pourcentage }}%</span>
+                                        </div>
+                                        <small class="text-muted">
+                                            <i class="bi bi-unlock me-1"></i>
+                                            Condition:
+                                            {% if benef.condition_deblocage == 'inactivite_30j' %}Inactivité 30j
+                                            {% elif benef.condition_deblocage == 'deces' %}Décès
+                                            {% elif benef.condition_deblocage == 'urgence' %}Urgence
+                                            {% else %}{{ benef.condition_deblocage }}
+                                            {% endif %}
+                                        </small>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            <div class="d-flex gap-2 mt-3">
+                                {% if membres_disponibles %}
+                                <button type="button" class="btn btn-sm btn-outline-success"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#addBeneficiaireModal{{ heritage.id }}">
+                                    <i class="bi bi-person-plus me-1"></i>Ajouter bénéficiaire
+                                </button>
+                                {% endif %}
+                                <form method="POST" action="{{ url_for('delete_heritage', id=heritage.id) }}"
+                                      style="display: inline;"
+                                      onsubmit="return confirm('Supprimer ce bien ?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal pour ajouter un bénéficiaire -->
+                    {% if membres_disponibles %}
+                    <div class="modal fade" id="addBeneficiaireModal{{ heritage.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="bi bi-person-plus me-2"></i>Ajouter un bénéficiaire
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form method="POST" action="{{ url_for('add_beneficiaire', heritage_id=heritage.id) }}">
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label">Bénéficiaire <span class="text-danger">*</span></label>
+                                            <select class="form-select" name="beneficiaire_id" required>
+                                                <option value="">Sélectionnez...</option>
+                                                {% for membre in membres_disponibles %}
+                                                <option value="{{ membre.id }}">{{ membre.nom }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Pourcentage <span class="text-danger">*</span></label>
+                                            <input type="number" class="form-control" name="pourcentage"
+                                                   min="1" max="100" required>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Message personnel</label>
+                                            <textarea class="form-control" name="message_personnel" rows="3"></textarea>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Condition de déblocage</label>
+                                            <select class="form-select" name="condition_deblocage">
+                                                <option value="inactivite_30j">Inactivité 30 jours</option>
+                                                <option value="deces">Décès</option>
+                                                <option value="urgence">Urgence</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="bi bi-person-plus me-2"></i>Ajouter
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="card shadow-sm">
+                <div class="card-body text-center text-muted py-5">
+                    <i class="bi bi-gift" style="font-size: 3rem;"></i>
+                    <p class="mt-3">Aucun bien d'héritage enregistré.</p>
+                    <p class="small">Commencez à organiser votre succession pour protéger vos proches.</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal d'ajout de bien -->
+<div class="modal fade" id="addHeritageModal" tabindex="-1" aria-labelledby="addHeritageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addHeritageModalLabel">
+                    <i class="bi bi-plus-circle me-2"></i>Ajouter un bien d'héritage
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_heritage') }}" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="titre" class="form-label">Titre <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="titre" name="titre" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="type_bien" class="form-label">Type de bien <span class="text-danger">*</span></label>
+                        <select class="form-select" id="type_bien" name="type_bien" required>
+                            <option value="">Sélectionnez...</option>
+                            <option value="immobilier">Immobilier (maison, terrain, appartement)</option>
+                            <option value="vehicule">Véhicule</option>
+                            <option value="compte">Compte bancaire / Investissement</option>
+                            <option value="objet_valeur">Objet de valeur (bijoux, art, etc.)</option>
+                            <option value="document">Document important</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="valeur_estimee" class="form-label">Valeur estimée (FCFA) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="valeur_estimee" name="valeur_estimee"
+                               step="1" min="0" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="fichier" class="form-label">Document attaché (optionnel)</label>
+                        <input type="file" class="form-control" id="fichier" name="fichier">
+                        <small class="text-muted">Titre de propriété, acte, photos, etc.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-2"></i>Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

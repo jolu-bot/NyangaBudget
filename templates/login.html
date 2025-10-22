@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - NyangaBudget</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.png') }}">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            max-width: 450px;
+            width: 100%;
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .login-header h1 {
+            color: white;
+            font-weight: bold;
+            font-size: 2.5rem;
+        }
+        .login-header p {
+            color: rgba(255, 255, 255, 0.9);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-12">
+                <div class="login-header">
+                    <h1><i class="bi bi-piggy-bank-fill"></i> NyangaBudget</h1>
+                    <p>Gérez votre budget au Cameroun - En FCFA</p>
+                </div>
+
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <div class="login-card">
+                    <div class="card shadow-lg">
+                        <div class="card-body p-5">
+                            <div class="text-center mb-4">
+                                <img src="{{ url_for('static', filename='images/logo.png') }}"
+                                     alt="NyangaBudget"
+                                     style="width: 100px; height: 100px; margin-bottom: 20px;">
+                                <h2 class="fw-bold">Connexion</h2>
+                                <p class="text-muted">NyangaBudget - Gestion Financière Familiale</p>
+                            </div>
+
+                            <form method="POST" action="{{ url_for('login') }}">
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">
+                                        <i class="bi bi-envelope me-2"></i>Email
+                                    </label>
+                                    <input type="email" class="form-control form-control-lg" id="email" name="email"
+                                           placeholder="votre@email.com" required autofocus>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">
+                                        <i class="bi bi-lock me-2"></i>Mot de passe
+                                    </label>
+                                    <input type="password" class="form-control form-control-lg" id="password" name="password"
+                                           placeholder="••••••••" required>
+                                </div>
+
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                                    <label class="form-check-label" for="remember">
+                                        Se souvenir de moi
+                                    </label>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
+                                    <i class="bi bi-box-arrow-in-right me-2"></i>Se connecter
+                                </button>
+
+                                <div class="text-center">
+                                    <p class="mb-0">Pas encore de compte ?
+                                        <a href="{{ url_for('register') }}" class="text-primary fw-bold">S'inscrire</a>
+                                    </p>
+                                </div>
+                            </form>
+
+                            <hr class="my-4">
+
+                            <div class="alert alert-info mb-0">
+                                <small>
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    <strong>Compte de test :</strong><br>
+                                    Email: admin@nyanga.cm<br>
+                                    Mot de passe: admin123
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <p class="text-white">
+                        <strong>Propulsé par JoYed'S</strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

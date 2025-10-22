@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}Rappels & Échéances - NyangaBudget{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="text-primary">
+        <i class="bi bi-alarm me-2"></i>Rappels & Échéances
+    </h2>
+    <p class="text-muted">Gérez vos paiements et échéances importantes</p>
+</div>
+
+<!-- Bouton Ajouter un rappel -->
+<div class="mb-4">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRappelModal">
+        <i class="bi bi-plus-circle me-2"></i>Nouveau rappel
+    </button>
+</div>
+
+<!-- Section Rappels Urgents -->
+<div class="card shadow-sm mb-4 border-danger">
+    <div class="card-header bg-danger text-white">
+        <h5 class="mb-0">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>Rappels Urgents
+            <span class="badge bg-white text-danger">{{ rappels_urgents|length }}</span>
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if rappels_urgents %}
+            {% for rappel in rappels_urgents %}
+            <div class="card mb-3 border-danger">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-1">
+                                {{ rappel.titre }}
+                                <span class="badge bg-danger">{{ rappel.type_rappel }}</span>
+                                {% if rappel.est_recurrent %}
+                                <span class="badge bg-info">
+                                    <i class="bi bi-arrow-repeat me-1"></i>{{ rappel.frequence }}
+                                </span>
+                                {% endif %}
+                            </h5>
+                            <p class="text-muted mb-2">{{ rappel.description }}</p>
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="text-danger fw-bold">
+                                    <i class="bi bi-calendar-x me-1"></i>{{ rappel.date_echeance.strftime('%d/%m/%Y') }}
+                                </span>
+                                {% if rappel.montant %}
+                                <span class="fw-bold text-primary">
+                                    <i class="bi bi-cash me-1"></i>{{ "{:,.0f}".format(rappel.montant) }} FCFA
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <form method="POST" action="{{ url_for('complete_rappel', id=rappel.id) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-success" title="Marquer comme terminé">
+                                    <i class="bi bi-check-circle"></i>
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('delete_rappel', id=rappel.id) }}"
+                                  style="display: inline;"
+                                  onsubmit="return confirm('Supprimer ce rappel ?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-check-circle" style="font-size: 2rem;"></i>
+                <p class="mt-2 mb-0">Aucun rappel urgent</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Section Rappels À Venir -->
+<div class="card shadow-sm mb-4 border-primary">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="bi bi-calendar-check me-2"></i>À Venir
+            <span class="badge bg-white text-primary">{{ rappels_a_venir|length }}</span>
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if rappels_a_venir %}
+            {% for rappel in rappels_a_venir %}
+            <div class="card mb-3 border-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-1">
+                                {{ rappel.titre }}
+                                <span class="badge bg-primary">{{ rappel.type_rappel }}</span>
+                                {% if rappel.est_recurrent %}
+                                <span class="badge bg-info">
+                                    <i class="bi bi-arrow-repeat me-1"></i>{{ rappel.frequence }}
+                                </span>
+                                {% endif %}
+                            </h5>
+                            <p class="text-muted mb-2">{{ rappel.description }}</p>
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="text-primary fw-bold">
+                                    <i class="bi bi-calendar-event me-1"></i>{{ rappel.date_echeance.strftime('%d/%m/%Y') }}
+                                </span>
+                                {% if rappel.montant %}
+                                <span class="fw-bold text-primary">
+                                    <i class="bi bi-cash me-1"></i>{{ "{:,.0f}".format(rappel.montant) }} FCFA
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <form method="POST" action="{{ url_for('complete_rappel', id=rappel.id) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-success" title="Marquer comme terminé">
+                                    <i class="bi bi-check-circle"></i>
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('delete_rappel', id=rappel.id) }}"
+                                  style="display: inline;"
+                                  onsubmit="return confirm('Supprimer ce rappel ?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-calendar3" style="font-size: 2rem;"></i>
+                <p class="mt-2 mb-0">Aucun rappel à venir</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Section Rappels Terminés (Collapsed) -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">
+            <a class="text-decoration-none text-dark d-flex justify-content-between align-items-center"
+               data-bs-toggle="collapse" href="#rappelsCompletes">
+                <span>
+                    <i class="bi bi-check-circle-fill text-success me-2"></i>Terminés
+                    <span class="badge bg-success">{{ rappels_completes|length }}</span>
+                </span>
+                <i class="bi bi-chevron-down"></i>
+            </a>
+        </h5>
+    </div>
+    <div class="collapse" id="rappelsCompletes">
+        <div class="card-body">
+            {% if rappels_completes %}
+                {% for rappel in rappels_completes %}
+                <div class="card mb-3 border-success bg-light">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="flex-grow-1">
+                                <h5 class="card-title mb-1 text-muted text-decoration-line-through">
+                                    {{ rappel.titre }}
+                                    <span class="badge bg-secondary">{{ rappel.type_rappel }}</span>
+                                    {% if rappel.est_recurrent %}
+                                    <span class="badge bg-info">
+                                        <i class="bi bi-arrow-repeat me-1"></i>{{ rappel.frequence }}
+                                    </span>
+                                    {% endif %}
+                                </h5>
+                                <p class="text-muted mb-2 small">{{ rappel.description }}</p>
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="text-muted small">
+                                        <i class="bi bi-calendar-check me-1"></i>{{ rappel.date_echeance.strftime('%d/%m/%Y') }}
+                                    </span>
+                                    {% if rappel.montant %}
+                                    <span class="text-muted small">
+                                        <i class="bi bi-cash me-1"></i>{{ "{:,.0f}".format(rappel.montant) }} FCFA
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div>
+                                <form method="POST" action="{{ url_for('delete_rappel', id=rappel.id) }}"
+                                      style="display: inline;"
+                                      onsubmit="return confirm('Supprimer ce rappel ?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                    <p class="mt-2 mb-0">Aucun rappel terminé</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajouter un rappel -->
+<div class="modal fade" id="addRappelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-alarm me-2"></i>Nouveau rappel
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_rappel') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="titre" class="form-label">Titre</label>
+                        <input type="text" class="form-control" id="titre" name="titre"
+                               placeholder="Ex: Paiement loyer" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description"
+                                  rows="2" placeholder="Détails du rappel..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="montant" class="form-label">Montant (FCFA)</label>
+                        <input type="number" class="form-control" id="montant" name="montant"
+                               step="1" min="0" placeholder="Optionnel">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="date_echeance" class="form-label">Date d'échéance</label>
+                        <input type="date" class="form-control" id="date_echeance" name="date_echeance" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="type_rappel" class="form-label">Type de rappel</label>
+                        <select class="form-select" id="type_rappel" name="type_rappel" required>
+                            <option value="paiement">Paiement</option>
+                            <option value="facture">Facture</option>
+                            <option value="echeance">Échéance</option>
+                            <option value="autre">Autre</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="est_recurrent" name="est_recurrent"
+                                   onchange="document.getElementById('frequenceGroup').style.display = this.checked ? 'block' : 'none';">
+                            <label class="form-check-label" for="est_recurrent">
+                                <i class="bi bi-arrow-repeat me-1"></i>Rappel récurrent
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3" id="frequenceGroup" style="display: none;">
+                        <label for="frequence" class="form-label">Fréquence</label>
+                        <select class="form-select" id="frequence" name="frequence">
+                            <option value="hebdomadaire">Hebdomadaire</option>
+                            <option value="mensuel" selected>Mensuel</option>
+                            <option value="annuel">Annuel</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-2"></i>Créer le rappel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - NyangaBudget{% endblock %}
+
+{% block extra_head %}
+<!-- Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="text-primary">
+        <i class="bi bi-graph-up-arrow me-2"></i>Tableau de bord
+    </h2>
+    <p class="text-muted">Vue d'ensemble de vos finances</p>
+</div>
+
+<!-- Statistiques principales -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card stat-danger shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Total Dépenses</h6>
+                        <h3 class="mb-0">{{ "{:,.0f}".format(stats.total_depenses) }} FCFA</h3>
+                        <small class="text-muted">{{ stats.nb_depenses }} transaction(s)</small>
+                    </div>
+                    <div class="stat-icon bg-danger">
+                        <i class="bi bi-arrow-down-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card stat-success shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Total Revenus</h6>
+                        <h3 class="mb-0">{{ "{:,.0f}".format(stats.total_revenus) }} FCFA</h3>
+                        <small class="text-muted">{{ stats.nb_revenus }} transaction(s)</small>
+                    </div>
+                    <div class="stat-icon bg-success">
+                        <i class="bi bi-arrow-up-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card {% if stats.solde >= 0 %}stat-primary{% else %}stat-warning{% endif %} shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Solde</h6>
+                        <h3 class="mb-0 {% if stats.solde >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ "{:,.0f}".format(stats.solde) }} FCFA
+                        </h3>
+                        <small class="text-muted">Revenus - Dépenses</small>
+                    </div>
+                    <div class="stat-icon {% if stats.solde >= 0 %}bg-primary{% else %}bg-warning{% endif %}">
+                        <i class="bi bi-wallet2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card stat-info shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Total Transactions</h6>
+                        <h3 class="mb-0">{{ stats.nb_depenses + stats.nb_revenus }}</h3>
+                        <small class="text-muted">Enregistrées</small>
+                    </div>
+                    <div class="stat-icon bg-info">
+                        <i class="bi bi-list-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alertes budget -->
+{% if alertes %}
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+    <h5 class="alert-heading">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>Alertes Budget
+    </h5>
+    {% for alerte in alertes %}
+    <p class="mb-1">
+        <strong>{{ alerte.categorie }}</strong>: {{ alerte.pourcentage }}% utilisé
+        ({{ "{:,.0f}".format(alerte.depenses) }} / {{ "{:,.0f}".format(alerte.limite) }} FCFA)
+    </p>
+    {% endfor %}
+    <hr>
+    <a href="{{ url_for('budgets') }}" class="alert-link">Gérer mes budgets</a>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<!-- Boutons d'export -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title mb-3">
+                    <i class="bi bi-download me-2"></i>Exporter les données
+                </h5>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('export_csv') }}" class="btn btn-outline-success">
+                        <i class="bi bi-file-earmark-spreadsheet me-2"></i>Exporter en CSV
+                    </a>
+                    <a href="{{ url_for('export_pdf') }}" class="btn btn-outline-danger">
+                        <i class="bi bi-file-earmark-pdf me-2"></i>Exporter en PDF
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Graphiques -->
+<div class="row">
+    {% if graphique_camembert and graphique_camembert != '{}' %}
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div id="graphiqueCamembert"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if graphique_mensuel and graphique_mensuel != '{}' %}
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div id="graphiqueMensuel"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if graphique_tendances and graphique_tendances != '{}' %}
+    <div class="col-lg-12 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div id="graphiqueTendances"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if (not graphique_camembert or graphique_camembert == '{}') and (not graphique_mensuel or graphique_mensuel == '{}') %}
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-bar-chart" style="font-size: 3rem; color: #ddd;"></i>
+                <p class="text-muted mt-3">Aucune donnée disponible pour afficher les graphiques.</p>
+                <p class="small">Ajoutez des dépenses et des revenus pour voir les statistiques visuelles.</p>
+                <div class="mt-3">
+                    <a href="{{ url_for('index') }}" class="btn btn-primary me-2">
+                        <i class="bi bi-plus-circle me-2"></i>Ajouter une dépense
+                    </a>
+                    <a href="{{ url_for('revenues') }}" class="btn btn-success">
+                        <i class="bi bi-plus-circle me-2"></i>Ajouter un revenu
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Informations supplémentaires -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow-sm bg-light">
+            <div class="card-body">
+                <h6 class="text-muted mb-3">
+                    <i class="bi bi-info-circle me-2"></i>À propos de ce dashboard
+                </h6>
+                <ul class="small mb-0">
+                    <li>Les graphiques affichent les données des 6 derniers mois</li>
+                    <li>Le camembert montre la répartition de vos dépenses par catégorie</li>
+                    <li>Le graphique en barres compare vos dépenses et revenus mensuels</li>
+                    <li>Les exports CSV incluent toutes les transactions avec leur type et date</li>
+                    <li>Les rapports PDF contiennent un résumé détaillé avec le top 10 des dépenses</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Rendu du graphique camembert
+    {% if graphique_camembert and graphique_camembert != '{}' %}
+    var graphCamembert = {{ graphique_camembert | safe }};
+    Plotly.newPlot('graphiqueCamembert', graphCamembert.data, graphCamembert.layout, {responsive: true});
+    {% endif %}
+
+    // Rendu du graphique mensuel
+    {% if graphique_mensuel and graphique_mensuel != '{}' %}
+    var graphMensuel = {{ graphique_mensuel | safe }};
+    Plotly.newPlot('graphiqueMensuel', graphMensuel.data, graphMensuel.layout, {responsive: true});
+    {% endif %}
+
+    // Rendu du graphique tendances
+    {% if graphique_tendances and graphique_tendances != '{}' %}
+    var graphTendances = {{ graphique_tendances | safe }};
+    Plotly.newPlot('graphiqueTendances', graphTendances.data, graphTendances.layout, {responsive: true});
+    {% endif %}
+</script>
+{% endblock %}

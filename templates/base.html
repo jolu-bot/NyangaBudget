@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}NyangaBudget{% endblock %}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="{{ url_for('index') }}">
+                <img src="{{ url_for('static', filename='images/logo-white.png') }}"
+                     alt="NyangaBudget"
+                     height="32"
+                     class="me-2">
+                <span>NyangaBudget</span>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
+                            <i class="bi bi-house-door me-1"></i>Accueil
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'revenues' %}active{% endif %}" href="{{ url_for('revenues') }}">
+                            <i class="bi bi-wallet2 me-1"></i>Revenus
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'comptes' %}active{% endif %}" href="{{ url_for('comptes') }}">
+                            <i class="bi bi-bank me-1"></i>Comptes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'categories' %}active{% endif %}" href="{{ url_for('categories') }}">
+                            <i class="bi bi-tags me-1"></i>Catégories
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'budgets' %}active{% endif %}" href="{{ url_for('budgets') }}">
+                            <i class="bi bi-calculator me-1"></i>Budgets
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-shield-lock me-1"></i>Sécurité
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('coffre_fort') }}">
+                                <i class="bi bi-safe me-2"></i>Coffre-Fort
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('heritage') }}">
+                                <i class="bi bi-gift me-2"></i>Héritage
+                            </a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'rappels' %}active{% endif %}" href="{{ url_for('rappels') }}">
+                            <i class="bi bi-alarm me-1"></i>Rappels
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'objectifs' %}active{% endif %}" href="{{ url_for('objectifs') }}">
+                            <i class="bi bi-trophy me-1"></i>Objectifs
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'famille' %}active{% endif %}" href="{{ url_for('famille') }}">
+                            <i class="bi bi-people me-1"></i>Famille
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+                            <i class="bi bi-graph-up me-1"></i>Dashboard
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- User menu & Dark Mode Toggle -->
+                <div class="d-flex align-items-center gap-2">
+                    {% if current_user.is_authenticated %}
+                    <!-- Notifications -->
+                    <a href="{{ url_for('notifications') }}" class="btn btn-outline-light position-relative">
+                        <i class="bi bi-bell"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notifBadge" style="display: none;">
+                            0
+                        </span>
+                    </a>
+
+                    <!-- Score Santé -->
+                    <button class="btn btn-outline-light" onclick="afficherScoreSante()">
+                        <i class="bi bi-heart-pulse"></i>
+                    </button>
+
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle me-1"></i>{{ current_user.nom }}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{{ url_for('notifications') }}">
+                                <i class="bi bi-bell me-2"></i>Notifications
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">
+                                <i class="bi bi-box-arrow-right me-2"></i>Déconnexion
+                            </a></li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                    <button id="darkModeToggle" class="btn btn-outline-light" type="button">
+                        <i class="bi bi-moon-stars-fill" id="darkModeIcon"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {% if category == 'success' %}
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                        {% elif category == 'danger' %}
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        {% elif category == 'warning' %}
+                            <i class="bi bi-exclamation-circle-fill me-2"></i>
+                        {% else %}
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                        {% endif %}
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <main class="container my-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-light text-center text-muted py-4 mt-5">
+        <div class="container">
+            <img src="{{ url_for('static', filename='images/logo.png') }}"
+                 alt="NyangaBudget"
+                 height="40"
+                 class="mb-2">
+            <p class="mb-0">
+                <strong>NyangaBudget</strong> &copy; 2025 - Gérez votre budget simplement
+            </p>
+            <p class="mt-2 mb-0">
+                <strong style="color: #0d6efd;">Propulsé par JoYed'S</strong>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Dark Mode Script -->
+    <script src="{{ url_for('static', filename='darkmode.js') }}"></script>
+
+    <!-- Notifications & Score Santé -->
+    {% if current_user.is_authenticated %}
+    <script>
+        // Vérifier notifications non lues
+        function verifierNotifications() {
+            fetch('{{ url_for("api_notifications_count") }}')
+                .then(res => res.json())
+                .then(data => {
+                    const badge = document.getElementById('notifBadge');
+                    if (data.count > 0) {
+                        badge.textContent = data.count;
+                        badge.style.display = 'block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                });
+        }
+
+        // Afficher score de santé financière
+        function afficherScoreSante() {
+            fetch('{{ url_for("score_sante") }}')
+                .then(res => res.json())
+                .then(data => {
+                    let couleur = data.niveau === 'excellent' ? 'success' :
+                                 data.niveau === 'bon' ? 'primary' :
+                                 data.niveau === 'moyen' ? 'warning' : 'danger';
+
+                    let html = `
+                        <div class="text-center mb-3">
+                            <h1 class="display-1 text-${couleur}">${data.score}<small>/100</small></h1>
+                            <h4 class="text-${couleur} text-uppercase">${data.niveau}</h4>
+                        </div>
+                        <h6 class="fw-bold text-success">✓ Points forts:</h6>
+                        <ul class="text-success">
+                            ${data.facteurs_positifs.map(f => '<li>' + f + '</li>').join('')}
+                        </ul>
+                        ${data.facteurs_negatifs.length > 0 ? `
+                            <h6 class="fw-bold text-danger">⚠ Points à améliorer:</h6>
+                            <ul class="text-danger">
+                                ${data.facteurs_negatifs.map(f => '<li>' + f + '</li>').join('')}
+                            </ul>
+                        ` : ''}
+                        ${data.suggestions.length > 0 ? `
+                            <h6 class="fw-bold text-primary">💡 Suggestions IA:</h6>
+                            <ul class="text-primary">
+                                ${data.suggestions.map(s => '<li>' + s + '</li>').join('')}
+                            </ul>
+                        ` : ''}
+                    `;
+
+                    // Afficher dans modal Bootstrap
+                    let modal = new bootstrap.Modal(document.getElementById('scoreModal') || createScoreModal());
+                    document.querySelector('#scoreModal .modal-body').innerHTML = html;
+                    modal.show();
+                });
+        }
+
+        function createScoreModal() {
+            let modalHtml = `
+                <div class="modal fade" id="scoreModal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title"><i class="bi bi-heart-pulse me-2"></i>Score de Santé Financière</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            return document.getElementById('scoreModal');
+        }
+
+        // Vérifier notifications toutes les 30 secondes
+        verifierNotifications();
+        setInterval(verifierNotifications, 30000);
+    </script>
+    {% endif %}
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

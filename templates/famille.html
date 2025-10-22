@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion Familiale - NyangaBudget{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="text-primary">
+        <i class="bi bi-people me-2"></i>Ma Famille
+    </h2>
+    <p class="text-muted">Gérez vos familles et partagez vos budgets</p>
+</div>
+
+<!-- Bouton de création -->
+<div class="mb-4">
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createFamilleModal">
+        <i class="bi bi-plus-circle me-2"></i>Créer une famille
+    </button>
+</div>
+
+<!-- Familles que je gère -->
+{% if mes_familles_chef %}
+<div class="mb-5">
+    <h4 class="mb-3">
+        <i class="bi bi-person-badge me-2"></i>Familles que je gère
+    </h4>
+    <div class="row">
+        {% for famille in mes_familles_chef %}
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-house-heart me-2"></i>{{ famille.nom }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">{{ famille.description }}</p>
+
+                    <div class="alert alert-info mb-3">
+                        <h6 class="alert-heading">
+                            <i class="bi bi-key me-2"></i>Code d'invitation
+                        </h6>
+                        <p class="mb-2 fs-4 fw-bold text-center">{{ famille.code_invitation }}</p>
+                        <div class="text-center">
+                            <a href="{{ url_for('famille_qrcode', famille_id=famille.id) }}"
+                               class="btn btn-sm btn-outline-primary" download>
+                                <i class="bi bi-qr-code me-2"></i>Télécharger QR Code
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Membres validés -->
+                    {% if famille.membres_valides %}
+                    <h6 class="text-muted mb-2">
+                        <i class="bi bi-people me-2"></i>Membres ({{ famille.membres_valides|length }})
+                    </h6>
+                    <ul class="list-group list-group-flush mb-3">
+                        {% for membre in famille.membres_valides %}
+                        <li class="list-group-item px-0 py-2">
+                            <i class="bi bi-person-check text-success me-2"></i>
+                            {{ membre.nom }}
+                            {% if membre.id == famille.chef_id %}
+                            <span class="badge bg-warning text-dark ms-2">Chef</span>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+
+                    <small class="text-muted">
+                        <i class="bi bi-calendar3 me-1"></i>
+                        Créée le {{ famille.date_creation.strftime('%d/%m/%Y') }}
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Mes appartenances -->
+{% if mes_appartenances %}
+<div class="mb-5">
+    <h4 class="mb-3">
+        <i class="bi bi-person-heart me-2"></i>Mes appartenances
+    </h4>
+    <div class="row">
+        {% for appart in mes_appartenances %}
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-house-heart me-2"></i>{{ appart.famille.nom }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">{{ appart.famille.description }}</p>
+
+                    <div class="mb-3">
+                        <span class="badge bg-success">
+                            <i class="bi bi-check-circle me-1"></i>Membre validé
+                        </span>
+                    </div>
+
+                    <p class="small text-muted mb-0">
+                        <i class="bi bi-person-badge me-1"></i>
+                        Chef: {{ appart.famille.chef.nom }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Demandes en attente -->
+{% if demandes_attente %}
+<div class="mb-5">
+    <h4 class="mb-3">
+        <i class="bi bi-hourglass-split me-2 text-warning"></i>Demandes en attente
+    </h4>
+    <div class="row">
+        {% for demande in demandes_attente %}
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-raised-hand me-2"></i>Demande de {{ demande.utilisateur.nom }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">
+                        <strong>Famille:</strong> {{ demande.famille.nom }}
+                    </p>
+                    <p class="text-muted small mb-3">
+                        <i class="bi bi-calendar3 me-1"></i>
+                        Demande faite le {{ demande.date_demande.strftime('%d/%m/%Y %H:%M') }}
+                    </p>
+
+                    <div class="d-flex gap-2">
+                        <form method="POST" action="{{ url_for('accepter_demande', demande_id=demande.id) }}"
+                              style="display: inline;">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle me-2"></i>Accepter
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ url_for('refuser_demande', demande_id=demande.id) }}"
+                              style="display: inline;"
+                              onsubmit="return confirm('Refuser cette demande ?');">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-x-circle me-2"></i>Refuser
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Rejoindre une famille -->
+<div class="mb-5">
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Rejoindre une famille
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('rejoindre_famille') }}" class="row g-3">
+                <div class="col-md-8">
+                    <label for="code_invitation" class="form-label">Code d'invitation</label>
+                    <input type="text" class="form-control" id="code_invitation" name="code_invitation"
+                           placeholder="Entrez le code à 6 caractères" required>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-arrow-right-circle me-2"></i>Rejoindre
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Message si aucune famille -->
+{% if not mes_familles_chef and not mes_appartenances %}
+<div class="card shadow-sm">
+    <div class="card-body text-center text-muted py-5">
+        <i class="bi bi-people" style="font-size: 3rem;"></i>
+        <p class="mt-3">Vous ne faites partie d'aucune famille pour le moment.</p>
+        <p class="small">Créez votre première famille ou rejoignez-en une avec un code d'invitation.</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal de création de famille -->
+<div class="modal fade" id="createFamilleModal" tabindex="-1" aria-labelledby="createFamilleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createFamilleModalLabel">
+                    <i class="bi bi-plus-circle me-2"></i>Créer une famille
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('create_famille') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nom" class="form-label">Nom de la famille <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="nom" name="nom"
+                               placeholder="Ex: Famille Dupont" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"
+                                  placeholder="Décrivez votre famille..."></textarea>
+                    </div>
+
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <small>Un code d'invitation unique sera généré automatiquement pour inviter vos proches.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-2"></i>Créer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
