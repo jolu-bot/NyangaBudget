@@ -835,23 +835,46 @@ def creer_categories_defaut(user_id):
 
 # ==================== FONCTIONS CRYPTAGE (COFFRE-FORT & HÉRITAGE) ====================
 
-def generer_cle_fernet(password):
-    """Génère une clé Fernet à partir d'un mot de passe"""
+def generer_cle_fernet(password, user_id=None):
+    """Génère une clé Fernet à partir d'un mot de passe avec salt unique par utilisateur
+    
+    Args:
+        password: Mot de passe utilisateur
+        user_id: ID de l'utilisateur (optionnel). Si fourni, génère un salt unique.
+    
+    Returns:
+        Clé Fernet dérivée du mot de passe
+    """
+    # Génération du salt unique par utilisateur
+    if user_id:
+        # Salt dérivé de l'user_id + constante secrète
+        salt_base = f"nyanga_2025_{user_id}_secure_salt"
+        salt = hashlib.sha256(salt_base.encode()).digest()
+    else:
+        # Fallback pour compatibilité (anciens documents)
+        salt = b'nyanga_salt_2025'
+    
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
-        salt=b'nyanga_salt_2025',  # EN PRODUCTION: utiliser salt aléatoire par user
-        iterations=100000,
+        salt=salt,  # Salt unique par utilisateur
+        iterations=150000,  # Augmenté de 100k à 150k pour plus de sécurité
         backend=default_backend()
     )
     key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
     return key
 
 
-def crypter_texte(texte, password=None):
-    """Crypte un texte avec Fernet"""
+def crypter_texte(texte, password=None, user_id=None):
+    """Crypte un texte avec Fernet
+    
+    Args:
+        texte: Texte à crypter
+        password: Mot de passe personnalisé (optionnel)
+        user_id: ID utilisateur pour salt unique (optionnel)
+    """
     if password:
-        key = generer_cle_fernet(password)
+        key = generer_cle_fernet(password, user_id)
     else:
         key = MASTER_ENCRYPTION_KEY
 
@@ -860,11 +883,17 @@ def crypter_texte(texte, password=None):
     return base64.urlsafe_b64encode(texte_crypte).decode()
 
 
-def decrypter_texte(texte_crypte, password=None):
-    """Décrypte un texte avec Fernet"""
+def decrypter_texte(texte_crypte, password=None, user_id=None):
+    """Décrypte un texte avec Fernet
+    
+    Args:
+        texte_crypte: Texte crypté à déchiffrer
+        password: Mot de passe personnalisé (optionnel)
+        user_id: ID utilisateur pour salt unique (optionnel)
+    """
     try:
         if password:
-            key = generer_cle_fernet(password)
+            key = generer_cle_fernet(password, user_id)
         else:
             key = MASTER_ENCRYPTION_KEY
 
@@ -876,10 +905,10 @@ def decrypter_texte(texte_crypte, password=None):
         return None
 
 
-def crypter_fichier(fichier_path, password=None):
-    """Crypte un fichier"""
+def crypter_fichier(fichier_path, password=None, user_id=None):
+    """Crypte un fichier avec salt unique par utilisateur"""
     if password:
-        key = generer_cle_fernet(password)
+        key = generer_cle_fernet(password, user_id)
     else:
         key = MASTER_ENCRYPTION_KEY
 
