@@ -57,6 +57,7 @@
                         </button>
                         <form id="deleteForm{{ compte.id }}" method="POST"
                               action="{{ url_for('delete_compte', id=compte.id) }}" style="display: none;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         </form>
                     </div>
                 </div>
@@ -129,6 +130,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form method="POST" action="{{ url_for('add_compte') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Nouveau Compte</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -191,6 +193,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form method="POST" action="{{ url_for('transfert_compte') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="bi bi-arrow-left-right me-2"></i>Transfert Inter-Comptes</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

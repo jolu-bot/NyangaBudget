@@ -21,6 +21,7 @@
             </div>
             <div class="card-body">
                 <form method="POST" action="{{ url_for('add_categorie') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="mb-3">
                         <label for="nom" class="form-label">Nom de la catégorie</label>
                         <input type="text" class="form-control" id="nom" name="nom"
@@ -112,6 +113,7 @@
                                             <form method="POST" action="{{ url_for('delete_categorie', id=item.categorie.id) }}"
                                                   style="display: inline;"
                                                   onsubmit="return confirm('Supprimer cette catégorie ? Les dépenses associées ne seront pas supprimées.');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                                 <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
                                                     <i class="bi bi-trash"></i>
                                                 </button>

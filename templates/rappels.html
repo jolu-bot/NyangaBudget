@@ -55,6 +55,7 @@
                         </div>
                         <div class="d-flex gap-2">
                             <form method="POST" action="{{ url_for('complete_rappel', id=rappel.id) }}" style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                 <button type="submit" class="btn btn-sm btn-success" title="Marquer comme terminé">
                                     <i class="bi bi-check-circle"></i>
                                 </button>
@@ -62,6 +63,7 @@
                             <form method="POST" action="{{ url_for('delete_rappel', id=rappel.id) }}"
                                   style="display: inline;"
                                   onsubmit="return confirm('Supprimer ce rappel ?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                 <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
                                     <i class="bi bi-trash"></i>
                                 </button>
@@ -118,6 +120,7 @@
                         </div>
                         <div class="d-flex gap-2">
                             <form method="POST" action="{{ url_for('complete_rappel', id=rappel.id) }}" style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                 <button type="submit" class="btn btn-sm btn-success" title="Marquer comme terminé">
                                     <i class="bi bi-check-circle"></i>
                                 </button>
@@ -125,6 +128,7 @@
                             <form method="POST" action="{{ url_for('delete_rappel', id=rappel.id) }}"
                                   style="display: inline;"
                                   onsubmit="return confirm('Supprimer ce rappel ?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                 <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
                                     <i class="bi bi-trash"></i>
                                 </button>
@@ -190,6 +194,7 @@
                                 <form method="POST" action="{{ url_for('delete_rappel', id=rappel.id) }}"
                                       style="display: inline;"
                                       onsubmit="return confirm('Supprimer ce rappel ?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
                                         <i class="bi bi-trash"></i>
                                     </button>
@@ -220,6 +225,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('add_rappel') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="titre" class="form-label">Titre</label>

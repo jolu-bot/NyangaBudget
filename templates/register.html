@@ -78,6 +78,7 @@
                             </div>
 
                             <form method="POST" action="{{ url_for('register') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                 <div class="mb-3">
                                     <label for="nom" class="form-label">
                                         <i class="bi bi-person me-2"></i>Nom complet
@@ -174,6 +175,7 @@
                 <h3 class="card-title text-center mb-4">Inscription</h3>
 
                 <form method="POST" action="{{ url_for('register') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="mb-3">
                         <label for="nom" class="form-label">
                             <i class="bi bi-person me-2"></i>Nom complet
@@ -261,6 +263,7 @@
                 <h3 class="card-title text-center mb-4">Inscription</h3>
 
                 <form method="POST" action="{{ url_for('register') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="mb-3">
                         <label for="nom" class="form-label">
                             <i class="bi bi-person me-2"></i>Nom complet

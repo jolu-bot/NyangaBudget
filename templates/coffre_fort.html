@@ -71,6 +71,7 @@
                                 <form method="POST" action="{{ url_for('delete_coffre', id=doc.id) }}"
                                       style="display: inline;"
                                       onsubmit="return confirm('Supprimer ce document ?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                     <button type="submit" class="btn btn-sm btn-outline-danger">
                                         <i class="bi bi-trash"></i>
                                     </button>
@@ -104,6 +105,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="POST" action="{{ url_for('add_coffre') }}" enctype="multipart/form-data">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="titre" class="form-label">Titre <span class="text-danger">*</span></label>

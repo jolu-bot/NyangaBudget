@@ -141,6 +141,7 @@
                     <div class="d-flex gap-2">
                         <form method="POST" action="{{ url_for('accepter_demande', demande_id=demande.id) }}"
                               style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <button type="submit" class="btn btn-success">
                                 <i class="bi bi-check-circle me-2"></i>Accepter
                             </button>
@@ -148,6 +149,7 @@
                         <form method="POST" action="{{ url_for('refuser_demande', demande_id=demande.id) }}"
                               style="display: inline;"
                               onsubmit="return confirm('Refuser cette demande ?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <button type="submit" class="btn btn-danger">
                                 <i class="bi bi-x-circle me-2"></i>Refuser
                             </button>
@@ -171,6 +173,7 @@
         </div>
         <div class="card-body">
             <form method="POST" action="{{ url_for('rejoindre_famille') }}" class="row g-3">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="col-md-8">
                     <label for="code_invitation" class="form-label">Code d'invitation</label>
                     <input type="text" class="form-control" id="code_invitation" name="code_invitation"
@@ -208,6 +211,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="POST" action="{{ url_for('create_famille') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="nom" class="form-label">Nom de la famille <span class="text-danger">*</span></label>

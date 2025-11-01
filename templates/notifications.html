@@ -107,6 +107,7 @@
                 <!-- Bouton de suppression -->
                 <form method="POST" action="{{ url_for('marquer_notif_lue', id=notif.id) }}"
                       style="display: inline;" class="ms-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <button type="submit" class="btn btn-sm btn-outline-secondary" title="Marquer comme lu">
                         <i class="bi bi-check2"></i>
                     </button>
@@ -119,6 +120,7 @@
     <!-- Pagination ou bouton "Tout marquer comme lu" -->
     <div class="mt-4 text-center">
         <form method="POST" action="{{ url_for('marquer_toutes_lues') }}" style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <button type="submit" class="btn btn-outline-primary">
                 <i class="bi bi-check-all me-2"></i>Tout marquer comme lu
             </button>

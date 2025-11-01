@@ -24,6 +24,9 @@ import hashlib
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file, make_response, jsonify, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
@@ -103,6 +106,22 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Veuillez vous connecter pour accéder à cette page.'
 login_manager.login_message_category = 'warning'
+
+# ==================== SÉCURITÉ ====================
+
+# Protection CSRF
+csrf = CSRFProtect(app)
+
+# Rate Limiting (protection contre brute force)
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"  # En production: utiliser Redis
+)
+
+print("[OK] Sécurité initialisée: CSRF + Rate Limiting")
+
 
 
 # ==================== MODÈLES DE DONNÉES ====================
@@ -1039,6 +1058,7 @@ def generer_qr_code_invitation(code_invitation):
 # ==================== ROUTES AUTHENTIFICATION ====================
 
 @app.route('/init-db')
+@csrf.exempt  # Pas de formulaire, pas besoin de CSRF
 def route_init_db():
     """Route pour initialiser la base de données (à appeler une seule fois après déploiement)"""
     try:
@@ -1055,6 +1075,7 @@ def route_init_db():
 
 
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")  # Max 10 tentatives par minute
 def login():
     """Page de connexion"""
     if current_user.is_authenticated:
@@ -1083,6 +1104,7 @@ def login():
 
 
 @app.route('/register', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")  # Max 5 inscriptions par minute
 def register():
     """Page d'inscription"""
     if current_user.is_authenticated:
@@ -2616,6 +2638,15 @@ def init_db():
             print("[OK] Utilisateur admin cree: admin@nyanga.cm / admin123")
 
         print("[OK] Base de donnees initialisee")
+
+
+# ==================== GESTION DES ERREURS ====================
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    """Gérer les erreurs de rate limiting"""
+    flash('Trop de tentatives. Veuillez réessayer dans quelques minutes.', 'warning')
+    return redirect(url_for('login')), 429
 
 
 # ==================== POINT D'ENTRÉE ====================
