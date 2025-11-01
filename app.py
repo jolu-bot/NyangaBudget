@@ -1033,6 +1033,22 @@ def generer_qr_code_invitation(code_invitation):
 
 # ==================== ROUTES AUTHENTIFICATION ====================
 
+@app.route('/init-db')
+def route_init_db():
+    """Route pour initialiser la base de données (à appeler une seule fois après déploiement)"""
+    try:
+        init_db()
+        return jsonify({
+            'success': True,
+            'message': 'Base de données initialisée avec succès ! Vous pouvez maintenant vous inscrire.'
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Page de connexion"""
