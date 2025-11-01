@@ -169,7 +169,7 @@ def validate_file_upload(file):
     
     Vérifie :
     1. Extension du fichier
-    2. MIME type réel (détection contenu)
+    2. MIME type réel (détection contenu) - optionnel si python-magic non disponible
     3. Taille du fichier
     
     Returns:
@@ -182,7 +182,7 @@ def validate_file_upload(file):
     if not allowed_file(file.filename):
         return False, f"Type de fichier non autorisé. Extensions acceptées : {', '.join(app.config['ALLOWED_EXTENSIONS'])}"
     
-    # 2. Vérifier le MIME type réel
+    # 2. Vérifier le MIME type réel (optionnel)
     try:
         import magic
         # Lire les premiers 2048 octets pour détecter le type
