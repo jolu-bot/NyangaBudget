@@ -1,4 +1,11 @@
 services:
+  # Base de données PostgreSQL (DOIT ÊTRE EN PREMIER)
+  - type: pserv
+    name: nyangabudget-db
+    env: docker
+    region: frankfurt
+    plan: free  # PostgreSQL gratuit (expire après 90 jours - à renouveler)
+
   # Web Service - Application Flask
   - type: web
     name: nyangabudget
@@ -19,10 +26,3 @@ services:
           name: nyangabudget-db
           property: connectionString
     healthCheckPath: /
-
-  # Base de données PostgreSQL
-  - type: pserv
-    name: nyangabudget-db
-    env: docker
-    region: frankfurt
-    plan: free  # PostgreSQL gratuit (expire après 90 jours - à renouveler)
