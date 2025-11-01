@@ -3257,39 +3257,51 @@ def init_db():
         
         # Migration: Ajouter colonnes blockchain si elles n'existent pas
         try:
-            from sqlalchemy import text
+            from sqlalchemy import text, inspect
             
-            # Vérifier si colonnes blockchain_hash existent
-            result = db.session.execute(text("""
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name='depenses' AND column_name='blockchain_hash'
-            """))
+            # Utiliser l'inspector SQLAlchemy (plus fiable)
+            inspector = inspect(db.engine)
+            depenses_columns = [col['name'] for col in inspector.get_columns('depenses')]
             
-            if not result.fetchone():
+            if 'blockchain_hash' not in depenses_columns:
                 print("[MIGRATION] Ajout colonnes blockchain...")
                 
-                # Depenses
-                db.session.execute(text("""
-                    ALTER TABLE depenses 
-                    ADD COLUMN blockchain_hash VARCHAR(64),
-                    ADD COLUMN prev_hash VARCHAR(64)
-                """))
+                # Depenses - Ajout colonne par colonne pour éviter les erreurs
+                try:
+                    db.session.execute(text("ALTER TABLE depenses ADD COLUMN blockchain_hash VARCHAR(64)"))
+                    db.session.commit()
+                except Exception as e:
+                    print(f"[INFO] blockchain_hash depenses déjà présente ou erreur: {e}")
+                    db.session.rollback()
+                
+                try:
+                    db.session.execute(text("ALTER TABLE depenses ADD COLUMN prev_hash VARCHAR(64)"))
+                    db.session.commit()
+                except Exception as e:
+                    print(f"[INFO] prev_hash depenses déjà présente ou erreur: {e}")
+                    db.session.rollback()
                 
                 # Revenus
-                db.session.execute(text("""
-                    ALTER TABLE revenus 
-                    ADD COLUMN blockchain_hash VARCHAR(64),
-                    ADD COLUMN prev_hash VARCHAR(64)
-                """))
+                try:
+                    db.session.execute(text("ALTER TABLE revenus ADD COLUMN blockchain_hash VARCHAR(64)"))
+                    db.session.commit()
+                except Exception as e:
+                    print(f"[INFO] blockchain_hash revenus déjà présente ou erreur: {e}")
+                    db.session.rollback()
                 
-                db.session.commit()
+                try:
+                    db.session.execute(text("ALTER TABLE revenus ADD COLUMN prev_hash VARCHAR(64)"))
+                    db.session.commit()
+                except Exception as e:
+                    print(f"[INFO] prev_hash revenus déjà présente ou erreur: {e}")
+                    db.session.rollback()
+                
                 print("[OK] Migration blockchain terminée")
             else:
                 print("[OK] Colonnes blockchain déjà présentes")
                 
         except Exception as e:
-            print(f"[WARNING] Migration blockchain: {str(e)}")
+            print(f"[WARNING] Erreur migration blockchain (non bloquante): {str(e)}")
             db.session.rollback()
 
         # Créer utilisateur admin par défaut s'il n'existe pas
