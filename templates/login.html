@@ -47,6 +47,16 @@
             height: 100px;
             margin-bottom: 20px;
         }
+        .card-logo {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+        }
+        .logo-inline {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -64,15 +74,15 @@
                         {% for category, message in messages %}
                             <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
                                 {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
                             </div>
                         {% endfor %}
                     {% endif %}
-                {% endwith %}
+                            <div class="text-center mb-4">
                                 <img src="{{ url_for('static', filename='images/logo.png') }}"
                                      alt="NyangaBudget"
-                                     class="logo-img">
-                        <div class="card-body p-5">
+                                     class="logo-inline">
+                                <h2 class="fw-bold">Connexion</h2>
                             <div class="text-center mb-4">
                                 <img src="{{ url_for('static', filename='images/logo.png') }}"
                                      alt="NyangaBudget"

@@ -249,6 +249,16 @@ body.dark-mode .badge.bg-success-soft {
     font-weight: 600;
 }
 
+/* Badge de notification */
+.notif-badge {
+    display: none;
+}
+
+.notif-badge.show {
+    display: inline-block !important;
+}
+
+
 /* ==================== DARK MODE TOGGLE ==================== */
 #darkModeToggle {
     border-radius: 50%;
