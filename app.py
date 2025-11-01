@@ -123,6 +123,77 @@ limiter = Limiter(
 print("[OK] Sécurité initialisée: CSRF + Rate Limiting")
 
 
+# ==================== FONCTIONS DE VALIDATION ====================
+
+# Mapping MIME types autorisés
+ALLOWED_MIME_TYPES = {
+    'application/pdf': ['.pdf'],
+    'image/png': ['.png'],
+    'image/jpeg': ['.jpg', '.jpeg'],
+    'image/jpg': ['.jpg', '.jpeg'],
+    'text/plain': ['.txt'],
+    'application/msword': ['.doc'],
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
+}
+
+def allowed_file(filename):
+    """Vérifie si l'extension du fichier est autorisée"""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+def validate_file_upload(file):
+    """Validation stricte des fichiers uploadés
+    
+    Vérifie :
+    1. Extension du fichier
+    2. MIME type réel (détection contenu)
+    3. Taille du fichier
+    
+    Returns:
+        tuple: (bool, str) - (valide, message_erreur)
+    """
+    if not file or file.filename == '':
+        return False, "Aucun fichier sélectionné"
+    
+    # 1. Vérifier l'extension
+    if not allowed_file(file.filename):
+        return False, f"Type de fichier non autorisé. Extensions acceptées : {', '.join(app.config['ALLOWED_EXTENSIONS'])}"
+    
+    # 2. Vérifier le MIME type réel
+    try:
+        import magic
+        # Lire les premiers 2048 octets pour détecter le type
+        file_header = file.read(2048)
+        file.seek(0)  # Remettre le curseur au début
+        
+        mime_type = magic.from_buffer(file_header, mime=True)
+        
+        # Vérifier si le MIME type correspond à l'extension
+        extension = '.' + file.filename.rsplit('.', 1)[1].lower()
+        
+        if mime_type not in ALLOWED_MIME_TYPES:
+            return False, f"Type MIME non autorisé : {mime_type}"
+        
+        if extension not in ALLOWED_MIME_TYPES[mime_type]:
+            return False, f"Le contenu du fichier ne correspond pas à son extension"
+    
+    except ImportError:
+        # Si python-magic n'est pas installé, on continue avec validation basique
+        print("[WARNING] python-magic non disponible, validation MIME désactivée")
+    except Exception as e:
+        print(f"[WARNING] Erreur validation MIME: {str(e)}")
+    
+    # 3. Vérifier la taille (déjà géré par Flask MAX_CONTENT_LENGTH, mais double vérification)
+    file.seek(0, 2)  # Aller à la fin
+    file_size = file.tell()
+    file.seek(0)  # Remettre au début
+    
+    max_size = app.config['MAX_CONTENT_LENGTH']
+    if file_size > max_size:
+        return False, f"Fichier trop volumineux (max: {max_size // (1024*1024)}MB)"
+    
+    return True, "Fichier valide"
+
 
 # ==================== MODÈLES DE DONNÉES ====================
 
