@@ -120,6 +120,27 @@ limiter = Limiter(
     storage_uri="memory://"  # En production: utiliser Redis
 )
 
+# ==================== PERFORMANCE - CACHE ====================
+
+from flask_caching import Cache
+
+# Configuration du cache
+cache_config = {
+    'CACHE_TYPE': 'simple',  # En production: 'redis' avec REDIS_URL
+    'CACHE_DEFAULT_TIMEOUT': 300  # 5 minutes par défaut
+}
+
+# Si Redis est disponible en production
+if os.environ.get('REDIS_URL'):
+    cache_config['CACHE_TYPE'] = 'redis'
+    cache_config['CACHE_REDIS_URL'] = os.environ.get('REDIS_URL')
+    print("[OK] Cache Redis activé")
+else:
+    print("[OK] Cache simple (mémoire) activé")
+
+cache = Cache(app, config=cache_config)
+
+
 print("[OK] Sécurité initialisée: CSRF + Rate Limiting")
 
 
@@ -1292,7 +1313,11 @@ def logout():
 @app.route('/')
 @login_required
 def index():
-    """Page d'accueil - Liste des dépenses avec formulaire d'ajout"""
+    """Page d'accueil - Liste des dépenses avec formulaire d'ajout (paginée)"""
+    # Pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 20  # 20 dépenses par page
+    
     # Recherche et filtrage
     search = request.args.get('search', '').strip()
     categorie_filter = request.args.get('categorie', '')
@@ -1325,7 +1350,11 @@ def index():
         except:
             pass
 
-    depenses = query.order_by(Depense.date_created.desc()).all()
+    # Pagination
+    depenses_pagination = query.order_by(Depense.date_created.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
     categories = Categorie.query.filter_by(user_id=current_user.id).order_by(Categorie.nom).all()
     stats = calculer_statistiques(current_user.id)
 
@@ -1333,7 +1362,8 @@ def index():
     alertes = verifier_alertes_budget(current_user.id)
 
     return render_template('index.html',
-                         depenses=depenses,
+                         depenses=depenses_pagination.items,
+                         pagination=depenses_pagination,
                          stats=stats,
                          categories=categories,
                          alertes=alertes,
@@ -1481,8 +1511,9 @@ def delete_revenu(id):
 
 @app.route('/dashboard')
 @login_required
+@cache.cached(timeout=300, key_prefix=lambda: f'dashboard_{current_user.id}')
 def dashboard():
-    """Tableau de bord avec statistiques et graphiques"""
+    """Tableau de bord avec statistiques et graphiques (mis en cache 5 min)"""
     stats = calculer_statistiques(current_user.id)
     graphique_camembert = generer_graphique_camembert(current_user.id)
     graphique_mensuel = generer_graphique_mensuel(current_user.id)
