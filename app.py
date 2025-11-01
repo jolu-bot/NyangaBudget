@@ -790,7 +790,11 @@ def generer_pdf(user_id):
 
 
 def creer_categories_defaut(user_id):
-    """Crée des catégories par défaut pour un nouvel utilisateur"""
+    """Crée des catégories par défaut pour un nouvel utilisateur
+    
+    Note: Cette fonction est appelée par init_db() pour l'admin.
+    Pour les inscriptions normales, les catégories sont créées directement dans register().
+    """
     categories_defaut = [
         {'nom': 'Alimentation', 'couleur': '#28a745', 'icone': 'bi-cart'},
         {'nom': 'Transport', 'couleur': '#ffc107', 'icone': 'bi-bus-front'},
@@ -806,7 +810,8 @@ def creer_categories_defaut(user_id):
         categorie = Categorie(user_id=user_id, **cat_data)
         db.session.add(categorie)
 
-    db.session.commit()
+    # Note: Pas de commit ici, c'est la fonction appelante qui fait le commit
+
 
 
 # ==================== FONCTIONS CRYPTAGE (COFFRE-FORT & HÉRITAGE) ====================
@@ -1089,6 +1094,7 @@ def register():
         password = request.form.get('password', '')
         password_confirm = request.form.get('password_confirm', '')
 
+        # Validation des champs
         if not all([nom, email, password, password_confirm]):
             flash('Tous les champs sont requis', 'danger')
             return redirect(url_for('register'))
@@ -1101,24 +1107,51 @@ def register():
             flash('Le mot de passe doit contenir au moins 6 caractères', 'danger')
             return redirect(url_for('register'))
 
+        # Vérifier si l'email existe déjà
         if User.query.filter_by(email=email).first():
             flash('Cet email est déjà utilisé', 'danger')
             return redirect(url_for('register'))
 
+        # Créer l'utilisateur
         try:
+            # Créer utilisateur
             user = User(nom=nom, email=email)
             user.set_password(password)
             db.session.add(user)
-            db.session.commit()
+            db.session.flush()  # Obtenir l'ID sans commit
+            
+            print(f"[INFO] Utilisateur créé: {user.email} (ID: {user.id})")
 
             # Créer catégories par défaut
-            creer_categories_defaut(user.id)
+            categories_defaut = [
+                {'nom': 'Alimentation', 'couleur': '#28a745', 'icone': 'bi-cart'},
+                {'nom': 'Transport', 'couleur': '#ffc107', 'icone': 'bi-bus-front'},
+                {'nom': 'Logement', 'couleur': '#dc3545', 'icone': 'bi-house'},
+                {'nom': 'Santé', 'couleur': '#17a2b8', 'icone': 'bi-heart-pulse'},
+                {'nom': 'Loisirs', 'couleur': '#e83e8c', 'icone': 'bi-controller'},
+                {'nom': 'Éducation', 'couleur': '#6610f2', 'icone': 'bi-book'},
+                {'nom': 'Vêtements', 'couleur': '#fd7e14', 'icone': 'bi-bag'},
+                {'nom': 'Autres', 'couleur': '#6c757d', 'icone': 'bi-tag'}
+            ]
+
+            for cat_data in categories_defaut:
+                categorie = Categorie(user_id=user.id, **cat_data)
+                db.session.add(categorie)
+            
+            # Commit unique pour tout
+            db.session.commit()
+            print(f"[OK] Inscription terminée: {user.email}")
 
             flash('Compte créé avec succès! Vous pouvez maintenant vous connecter.', 'success')
             return redirect(url_for('login'))
+            
         except Exception as e:
             db.session.rollback()
-            flash(f'Erreur lors de la création du compte: {str(e)}', 'danger')
+            print(f"[ERREUR] Inscription échouée: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            flash(f'Erreur lors de la création du compte. Veuillez réessayer.', 'danger')
+            return redirect(url_for('register'))
 
     return render_template('register.html')
 
