@@ -1,17 +1,15 @@
-services:
-  # Base de données PostgreSQL (DOIT ÊTRE EN PREMIER)
-  - type: pserv
-    name: nyangabudget-db
-    env: docker
-    region: frankfurt
-    plan: free  # PostgreSQL gratuit (expire après 90 jours - à renouveler)
+databases:
+  - name: nyangabudget-db
+    databaseName: nyangabudget
+    user: nyangabudget
+    plan: free
 
-  # Web Service - Application Flask
+services:
   - type: web
     name: nyangabudget
     env: python
-    region: frankfurt  # Europe (plus proche du Cameroun)
-    plan: free  # Plan gratuit
+    region: frankfurt
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
@@ -25,4 +23,3 @@ services:
         fromDatabase:
           name: nyangabudget-db
           property: connectionString
-    healthCheckPath: /
