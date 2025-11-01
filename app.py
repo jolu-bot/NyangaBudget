@@ -2559,6 +2559,14 @@ def api_predictions():
     return jsonify(predictions)
 
 
+# ==================== PWA - SERVICE WORKER ====================
+
+@app.route('/service-worker.js')
+def service_worker():
+    """Servir le service worker pour PWA"""
+    return send_file('static/service-worker.js', mimetype='application/javascript')
+
+
 @app.route('/notifications')
 @login_required
 def notifications():
