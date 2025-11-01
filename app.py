@@ -276,6 +276,15 @@ class Depense(db.Model):
     categorie_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
+    blockchain_hash = db.Column(db.String(64))  # Hash SHA-256 pour traçabilité blockchain
+    prev_hash = db.Column(db.String(64))  # Hash de la transaction précédente (chaîne)
+
+    def generer_blockchain_hash(self, prev_hash=None):
+        """Génère un hash blockchain pour cette transaction"""
+        data = f"{self.id}{self.nom}{self.montant}{self.categorie_id}{self.user_id}{self.date_created}{prev_hash or ''}"
+        self.prev_hash = prev_hash
+        self.blockchain_hash = hashlib.sha256(data.encode()).hexdigest()
+        return self.blockchain_hash
 
     def __repr__(self):
         return f'<Depense {self.nom}: {self.montant} FCFA>'
@@ -293,6 +302,15 @@ class Revenu(db.Model):
     montant = db.Column(db.Float, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
+    blockchain_hash = db.Column(db.String(64))  # Hash SHA-256 pour traçabilité blockchain
+    prev_hash = db.Column(db.String(64))  # Hash de la transaction précédente (chaîne)
+
+    def generer_blockchain_hash(self, prev_hash=None):
+        """Génère un hash blockchain pour cette transaction"""
+        data = f"{self.id}{self.source}{self.montant}{self.user_id}{self.date_created}{prev_hash or ''}"
+        self.prev_hash = prev_hash
+        self.blockchain_hash = hashlib.sha256(data.encode()).hexdigest()
+        return self.blockchain_hash
 
     def __repr__(self):
         return f'<Revenu {self.source}: {self.montant} FCFA>'
@@ -787,6 +805,72 @@ def generer_graphique_tendances(user_id):
     )
 
     return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+
+
+# ==================== BLOCKCHAIN & TRAÇABILITÉ ====================
+
+def get_dernier_hash_blockchain(user_id, type_transaction='depense'):
+    """Récupère le dernier hash de la blockchain pour un utilisateur
+    
+    Args:
+        user_id: ID de l'utilisateur
+        type_transaction: 'depense', 'revenu', ou 'transfert'
+    
+    Returns:
+        str: Hash de la dernière transaction ou None
+    """
+    if type_transaction == 'depense':
+        derniere = Depense.query.filter_by(user_id=user_id)\
+            .order_by(Depense.date_created.desc()).first()
+        return derniere.blockchain_hash if derniere and derniere.blockchain_hash else None
+    
+    elif type_transaction == 'revenu':
+        dernier = Revenu.query.filter_by(user_id=user_id)\
+            .order_by(Revenu.date_created.desc()).first()
+        return dernier.blockchain_hash if dernier and dernier.blockchain_hash else None
+    
+    elif type_transaction == 'transfert':
+        dernier = TransfertCompte.query.filter_by(user_id=user_id)\
+            .order_by(TransfertCompte.date_created.desc()).first()
+        return dernier.hash_transaction if dernier and dernier.hash_transaction else None
+    
+    return None
+
+
+def verifier_integrite_blockchain(user_id, type_transaction='depense'):
+    """Vérifie l'intégrité de la blockchain pour un utilisateur
+    
+    Returns:
+        dict: {valide: bool, erreurs: list, total: int}
+    """
+    erreurs = []
+    
+    if type_transaction == 'depense':
+        transactions = Depense.query.filter_by(user_id=user_id)\
+            .order_by(Depense.date_created.asc()).all()
+    elif type_transaction == 'revenu':
+        transactions = Revenu.query.filter_by(user_id=user_id)\
+            .order_by(Revenu.date_created.asc()).all()
+    else:
+        return {'valide': False, 'erreurs': ['Type de transaction inconnu'], 'total': 0}
+    
+    for i, transaction in enumerate(transactions):
+        if not transaction.blockchain_hash:
+            erreurs.append(f"Transaction {transaction.id} sans hash")
+            continue
+        
+        # Vérifier que prev_hash correspond au hash précédent
+        if i > 0:
+            hash_precedent = transactions[i-1].blockchain_hash
+            if transaction.prev_hash != hash_precedent:
+                erreurs.append(f"Transaction {transaction.id}: chaîne rompue (prev_hash invalide)")
+    
+    return {
+        'valide': len(erreurs) == 0,
+        'erreurs': erreurs,
+        'total': len(transactions),
+        'verifiees': len(transactions) - len(erreurs)
+    }
 
 
 # ==================== INTELLIGENCE ARTIFICIELLE & PRÉDICTION ====================
@@ -1478,8 +1562,14 @@ def add_depense():
             categorie_id=int(categorie_id) if categorie_id else None
         )
         db.session.add(nouvelle_depense)
+        db.session.flush()  # Obtenir l'ID avant commit
+        
+        # Générer hash blockchain avec chaînage
+        prev_hash = get_dernier_hash_blockchain(current_user.id, 'depense')
+        nouvelle_depense.generer_blockchain_hash(prev_hash)
+        
         db.session.commit()
-        flash(f'Dépense "{nom}" ajoutée avec succès!', 'success')
+        flash(f'Dépense "{nom}" ajoutée avec succès! 🔗 Hash: {nouvelle_depense.blockchain_hash[:8]}...', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'Erreur lors de l\'ajout: {str(e)}', 'danger')
@@ -1563,8 +1653,14 @@ def add_revenue():
     try:
         nouveau_revenu = Revenu(source=source, montant=montant, user_id=current_user.id)
         db.session.add(nouveau_revenu)
+        db.session.flush()  # Obtenir l'ID avant commit
+        
+        # Générer hash blockchain avec chaînage
+        prev_hash = get_dernier_hash_blockchain(current_user.id, 'revenu')
+        nouveau_revenu.generer_blockchain_hash(prev_hash)
+        
         db.session.commit()
-        flash(f'Revenu "{source}" ajouté avec succès!', 'success')
+        flash(f'Revenu "{source}" ajouté avec succès! 🔗 Hash: {nouveau_revenu.blockchain_hash[:8]}...', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'Erreur lors de l\'ajout: {str(e)}', 'danger')
@@ -2521,6 +2617,54 @@ def famille_qrcode(famille_id):
     qr_buffer = generer_qr_code_invitation(famille_obj.code_invitation)
 
     return send_file(qr_buffer, mimetype='image/png', download_name=f'invitation_famille_{famille_obj.nom}.png')
+
+
+# ==================== ROUTES BLOCKCHAIN & VÉRIFICATION ====================
+
+@app.route('/api/blockchain/verify')
+@login_required
+def api_blockchain_verify():
+    """API: Vérification de l'intégrité de la blockchain utilisateur"""
+    type_transaction = request.args.get('type', 'depense')  # depense, revenu, transfert
+    
+    resultat_depenses = verifier_integrite_blockchain(current_user.id, 'depense')
+    resultat_revenus = verifier_integrite_blockchain(current_user.id, 'revenu')
+    
+    return jsonify({
+        'user_id': current_user.id,
+        'depenses': resultat_depenses,
+        'revenus': resultat_revenus,
+        'blockchain_valide': resultat_depenses['valide'] and resultat_revenus['valide'],
+        'timestamp': datetime.now().isoformat()
+    })
+
+
+@app.route('/api/blockchain/stats')
+@login_required
+def api_blockchain_stats():
+    """API: Statistiques blockchain (nombre de transactions, hashes, etc.)"""
+    nb_depenses = Depense.query.filter_by(user_id=current_user.id).count()
+    nb_revenus = Revenu.query.filter_by(user_id=current_user.id).count()
+    nb_transferts = TransfertCompte.query.filter_by(user_id=current_user.id).count()
+    
+    # Calculer le nombre de transactions avec hash
+    nb_depenses_hash = Depense.query.filter(
+        Depense.user_id == current_user.id,
+        Depense.blockchain_hash.isnot(None)
+    ).count()
+    
+    nb_revenus_hash = Revenu.query.filter(
+        Revenu.user_id == current_user.id,
+        Revenu.blockchain_hash.isnot(None)
+    ).count()
+    
+    return jsonify({
+        'total_transactions': nb_depenses + nb_revenus + nb_transferts,
+        'depenses': {'total': nb_depenses, 'avec_hash': nb_depenses_hash},
+        'revenus': {'total': nb_revenus, 'avec_hash': nb_revenus_hash},
+        'transferts': {'total': nb_transferts},
+        'couverture_blockchain': round((nb_depenses_hash + nb_revenus_hash) / max(nb_depenses + nb_revenus, 1) * 100, 2)
+    })
 
 
 # ==================== ROUTES SCORE SANTÉ & NOTIFICATIONS ====================
