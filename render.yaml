@@ -26,4 +26,3 @@ services:
     env: docker
     region: frankfurt
     plan: free  # PostgreSQL gratuit (expire après 90 jours - à renouveler)
-    ipAllowList: []  # Accessible depuis n'importe où
