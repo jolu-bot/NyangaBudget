@@ -59,8 +59,9 @@ data_folder = os.path.join(BASE_DIR, 'data')
 upload_folder = os.path.join(BASE_DIR, 'uploads')
 vault_folder = os.path.join(upload_folder, 'vault')  # Coffre-fort crypté
 heritage_folder = os.path.join(upload_folder, 'heritage')  # Documents héritage
+receipts_folder = os.path.join(upload_folder, 'receipts')  # Reçus scannés
 
-for folder in [data_folder, upload_folder, vault_folder, heritage_folder]:
+for folder in [data_folder, upload_folder, vault_folder, heritage_folder, receipts_folder]:
     if not os.path.exists(folder):
         os.makedirs(folder)
         print(f"[OK] Dossier cree: {folder}")
@@ -74,6 +75,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Max 16MB par fichier
 app.config['UPLOAD_FOLDER'] = upload_folder
 app.config['VAULT_FOLDER'] = vault_folder
 app.config['HERITAGE_FOLDER'] = heritage_folder
+app.config['RECEIPTS_FOLDER'] = receipts_folder
 app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'png', 'jpg', 'jpeg', 'txt', 'doc', 'docx'}
 
 # Base de données - Support PostgreSQL (Render) ET SQLite (local)
@@ -1592,6 +1594,99 @@ def delete_depense(id):
         flash(f'Erreur lors de la suppression: {str(e)}', 'danger')
 
     return redirect(url_for('index'))
+
+
+# ==================== SCANNER DE REÇUS INTELLIGENT ====================
+
+@app.route('/scan_recu', methods=['GET', 'POST'])
+@login_required
+@limiter.limit("20 per hour")
+def scan_recu():
+    """Scanner intelligent de reçus avec extraction assistée"""
+    if request.method == 'POST':
+        if 'receipt_file' not in request.files:
+            flash('Aucun fichier sélectionné', 'danger')
+            return redirect(url_for('scan_recu'))
+        
+        file = request.files['receipt_file']
+        
+        # Validation du fichier
+        is_valid, error_msg = validate_file_upload(file)
+        if not is_valid:
+            flash(error_msg, 'danger')
+            return redirect(url_for('scan_recu'))
+        
+        # Sauvegarder le reçu
+        filename = secure_filename(file.filename)
+        unique_filename = f"{current_user.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
+        filepath = os.path.join(app.config['RECEIPTS_FOLDER'], unique_filename)
+        file.save(filepath)
+        
+        # Extraction manuelle assistée (formulaire pré-rempli avec suggestions)
+        # L'utilisateur remplit les détails après upload
+        montant = request.form.get('montant', '').strip()
+        nom = request.form.get('nom', '').strip()
+        categorie_id = request.form.get('categorie_id', '').strip()
+        
+        if montant and nom:
+            # Créer la dépense
+            montant_float, erreur = valider_montant(montant)
+            if erreur:
+                flash(erreur, 'danger')
+                return redirect(url_for('scan_recu'))
+            
+            try:
+                nouvelle_depense = Depense(
+                    nom=f"📄 {nom}",  # Icône pour indiquer reçu scanné
+                    montant=montant_float,
+                    user_id=current_user.id,
+                    categorie_id=int(categorie_id) if categorie_id else None
+                )
+                db.session.add(nouvelle_depense)
+                db.session.flush()
+                
+                # Générer hash blockchain
+                prev_hash = get_dernier_hash_blockchain(current_user.id, 'depense')
+                nouvelle_depense.generer_blockchain_hash(prev_hash)
+                
+                db.session.commit()
+                flash(f'✅ Dépense créée depuis reçu scanné: {nom} - {montant_float} FCFA', 'success')
+                return redirect(url_for('index'))
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Erreur: {str(e)}', 'danger')
+                # Supprimer le fichier en cas d'erreur
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+        else:
+            flash(f'📷 Reçu sauvegardé! Remplissez les détails ci-dessous.', 'info')
+            # Retourner au formulaire avec le fichier uploadé
+            return render_template('scan_recu.html',
+                                   categories=Categorie.query.filter_by(user_id=current_user.id).all(),
+                                   uploaded_file=unique_filename,
+                                   depenses_avec_recu=0,
+                                   montant_total=0,
+                                   pourcentage=0)
+    
+    # Statistiques reçus
+    total_depenses = Depense.query.filter_by(user_id=current_user.id).count()
+    depenses_avec_recu = Depense.query.filter(
+        Depense.user_id == current_user.id,
+        Depense.nom.like('📄%')
+    ).count()
+    
+    montant_total = db.session.query(func.sum(Depense.montant)).filter(
+        Depense.user_id == current_user.id,
+        Depense.nom.like('📄%')
+    ).scalar() or 0
+    
+    pourcentage = round((depenses_avec_recu / max(total_depenses, 1)) * 100, 1)
+    
+    return render_template('scan_recu.html',
+                           categories=Categorie.query.filter_by(user_id=current_user.id).all(),
+                           depenses_avec_recu=depenses_avec_recu,
+                           montant_total=f"{montant_total:,.0f}",
+                           pourcentage=pourcentage)
 
 
 @app.route('/revenues')

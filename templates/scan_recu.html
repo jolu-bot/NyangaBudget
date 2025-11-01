@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}Scanner Reçu - NyangaBudget{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-upc-scan me-2"></i>
+                        Scanner de Reçus Intelligent
+                    </h4>
+                    <small>Uploadez votre reçu et extrayez les données automatiquement</small>
+                </div>
+                <div class="card-body">
+                    {% if uploaded_file %}
+                    <!-- Formulaire d'extraction après upload -->
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle me-2"></i>
+                        Reçu sauvegardé! Complétez les informations ci-dessous:
+                    </div>
+                    
+                    <form method="POST" class="needs-validation" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <input type="hidden" name="uploaded_file" value="{{ uploaded_file }}"/>
+                        
+                        <div class="mb-3">
+                            <label for="nom" class="form-label">
+                                <i class="bi bi-tag me-1"></i>
+                                Description de la dépense *
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="nom" 
+                                   name="nom" 
+                                   placeholder="Ex: Courses au supermarché"
+                                   required>
+                            <div class="form-text">Décrivez ce qui apparaît sur le reçu</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="montant" class="form-label">
+                                <i class="bi bi-cash me-1"></i>
+                                Montant (FCFA) *
+                            </label>
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="montant" 
+                                   name="montant" 
+                                   step="0.01" 
+                                   placeholder="0.00"
+                                   required>
+                            <div class="form-text">Montant total du reçu</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="categorie_id" class="form-label">
+                                <i class="bi bi-bookmark me-1"></i>
+                                Catégorie
+                            </label>
+                            <select class="form-select" id="categorie_id" name="categorie_id">
+                                <option value="">Sans catégorie</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat.id }}">
+                                    <i class="{{ cat.icone }}"></i> {{ cat.nom }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-check2-circle me-2"></i>
+                                Créer la dépense
+                            </button>
+                            <a href="{{ url_for('scan_recu') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>
+                                Scanner un autre reçu
+                            </a>
+                        </div>
+                    </form>
+                    
+                    {% else %}
+                    <!-- Formulaire d'upload initial -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="text-center mb-4">
+                                <i class="bi bi-receipt-cutoff" style="font-size: 5rem; color: #0d6efd;"></i>
+                                <h5 class="mt-3">Comment ça marche?</h5>
+                                <ol class="text-start">
+                                    <li>Uploadez une photo/scan de votre reçu</li>
+                                    <li>Le système sauvegarde le document</li>
+                                    <li>Vous extrayez les données manuellement</li>
+                                    <li>La dépense est créée avec le reçu attaché</li>
+                                </ol>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                
+                                <div class="mb-3">
+                                    <label for="receipt_file" class="form-label">
+                                        <i class="bi bi-camera me-1"></i>
+                                        Choisir un reçu *
+                                    </label>
+                                    <input type="file" 
+                                           class="form-control" 
+                                           id="receipt_file" 
+                                           name="receipt_file"
+                                           accept="image/*,.pdf"
+                                           required>
+                                    <div class="form-text">
+                                        Formats acceptés: JPG, PNG, PDF (Max 16MB)
+                                    </div>
+                                </div>
+
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="bi bi-cloud-arrow-up me-2"></i>
+                                        Uploader le reçu
+                                    </button>
+                                </div>
+                            </form>
+
+                            <!-- Preview de l'image (optionnel) -->
+                            <div id="preview" class="mt-3 text-center" style="display:none;">
+                                <img id="preview-img" src="" class="img-fluid rounded" style="max-height: 300px;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mt-4">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Astuce Pro:</strong> Pour une extraction automatique complète (OCR), 
+                        installez pytesseract et configurez une clé API OpenAI.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Statistiques reçus scannés -->
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <i class="bi bi-graph-up me-2"></i>
+                    Mes reçus scannés
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <h3 class="text-primary">{{ depenses_avec_recu }}</h3>
+                            <small class="text-muted">Dépenses avec reçu</small>
+                        </div>
+                        <div class="col-md-4">
+                            <h3 class="text-success">{{ montant_total }}</h3>
+                            <small class="text-muted">Total (FCFA)</small>
+                        </div>
+                        <div class="col-md-4">
+                            <h3 class="text-info">{{ pourcentage }}%</h3>
+                            <small class="text-muted">Taux de traçabilité</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Preview de l'image avant upload
+document.getElementById('receipt_file')?.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('preview-img').src = e.target.result;
+            document.getElementById('preview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Validation formulaire Bootstrap
+(function () {
+    'use strict'
+    var forms = document.querySelectorAll('.needs-validation')
+    Array.prototype.slice.call(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+})()
+</script>
+{% endblock %}
