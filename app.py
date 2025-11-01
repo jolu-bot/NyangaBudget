@@ -278,15 +278,16 @@ class Depense(db.Model):
     categorie_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
-    blockchain_hash = db.Column(db.String(64))  # Hash SHA-256 pour traçabilité blockchain
-    prev_hash = db.Column(db.String(64))  # Hash de la transaction précédente (chaîne)
+    # blockchain_hash = db.Column(db.String(64))  # TEMPORAIREMENT DESACTIVE
+    # prev_hash = db.Column(db.String(64))  # TEMPORAIREMENT DESACTIVE
 
     def generer_blockchain_hash(self, prev_hash=None):
-        """Génère un hash blockchain pour cette transaction"""
-        data = f"{self.id}{self.nom}{self.montant}{self.categorie_id}{self.user_id}{self.date_created}{prev_hash or ''}"
-        self.prev_hash = prev_hash
-        self.blockchain_hash = hashlib.sha256(data.encode()).hexdigest()
-        return self.blockchain_hash
+        """Génère un hash blockchain pour cette transaction (TEMPORAIREMENT DESACTIVE)"""
+        pass
+        # data = f"{self.id}{self.nom}{self.montant}{self.categorie_id}{self.user_id}{self.date_created}{prev_hash or ''}"
+        # self.prev_hash = prev_hash
+        # self.blockchain_hash = hashlib.sha256(data.encode()).hexdigest()
+        # return self.blockchain_hash
 
     def __repr__(self):
         return f'<Depense {self.nom}: {self.montant} FCFA>'
@@ -304,10 +305,16 @@ class Revenu(db.Model):
     montant = db.Column(db.Float, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
-    blockchain_hash = db.Column(db.String(64))  # Hash SHA-256 pour traçabilité blockchain
-    prev_hash = db.Column(db.String(64))  # Hash de la transaction précédente (chaîne)
+    # blockchain_hash = db.Column(db.String(64))  # TEMPORAIREMENT DESACTIVE
+    # prev_hash = db.Column(db.String(64))  # TEMPORAIREMENT DESACTIVE
 
     def generer_blockchain_hash(self, prev_hash=None):
+        """Génère un hash blockchain pour cette transaction (TEMPORAIREMENT DESACTIVE)"""
+        pass
+        # data = f"{self.id}{self.source}{self.montant}{self.user_id}{self.date_created}{prev_hash or ''}"
+        # self.prev_hash = prev_hash
+        # self.blockchain_hash = hashlib.sha256(data.encode()).hexdigest()
+        # return self.blockchain_hash
         """Génère un hash blockchain pour cette transaction"""
         data = f"{self.id}{self.source}{self.montant}{self.user_id}{self.date_created}{prev_hash or ''}"
         self.prev_hash = prev_hash
@@ -1713,12 +1720,12 @@ def add_depense():
         db.session.add(nouvelle_depense)
         db.session.flush()  # Obtenir l'ID avant commit
         
-        # Générer hash blockchain avec chaînage
-        prev_hash = get_dernier_hash_blockchain(current_user.id, 'depense')
-        nouvelle_depense.generer_blockchain_hash(prev_hash)
+        # Générer hash blockchain avec chaînage (TEMPORAIREMENT DESACTIVE)
+        # prev_hash = get_dernier_hash_blockchain(current_user.id, 'depense')
+        # nouvelle_depense.generer_blockchain_hash(prev_hash)
         
         db.session.commit()
-        flash(f'Dépense "{nom}" ajoutée avec succès! 🔗 Hash: {nouvelle_depense.blockchain_hash[:8]}...', 'success')
+        flash(f'Dépense "{nom}" ajoutée avec succès!', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'Erreur lors de l\'ajout: {str(e)}', 'danger')
@@ -1792,9 +1799,9 @@ def scan_recu():
                 db.session.add(nouvelle_depense)
                 db.session.flush()
                 
-                # Générer hash blockchain
-                prev_hash = get_dernier_hash_blockchain(current_user.id, 'depense')
-                nouvelle_depense.generer_blockchain_hash(prev_hash)
+                # Générer hash blockchain (TEMPORAIREMENT DESACTIVE)
+                # prev_hash = get_dernier_hash_blockchain(current_user.id, 'depense')
+                # nouvelle_depense.generer_blockchain_hash(prev_hash)
                 
                 db.session.commit()
                 flash(f'✅ Dépense créée depuis reçu scanné: {nom} - {montant_float} FCFA', 'success')
@@ -1897,12 +1904,12 @@ def add_revenue():
         db.session.add(nouveau_revenu)
         db.session.flush()  # Obtenir l'ID avant commit
         
-        # Générer hash blockchain avec chaînage
-        prev_hash = get_dernier_hash_blockchain(current_user.id, 'revenu')
-        nouveau_revenu.generer_blockchain_hash(prev_hash)
+        # Générer hash blockchain avec chaînage (TEMPORAIREMENT DESACTIVE)
+        # prev_hash = get_dernier_hash_blockchain(current_user.id, 'revenu')
+        # nouveau_revenu.generer_blockchain_hash(prev_hash)
         
         db.session.commit()
-        flash(f'Revenu "{source}" ajouté avec succès! 🔗 Hash: {nouveau_revenu.blockchain_hash[:8]}...', 'success')
+        flash(f'Revenu "{source}" ajouté avec succès!', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'Erreur lors de l\'ajout: {str(e)}', 'danger')
