@@ -42,6 +42,11 @@
         .login-header p {
             color: rgba(255, 255, 255, 0.9);
         }
+        .logo-img {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -64,9 +69,9 @@
                         {% endfor %}
                     {% endif %}
                 {% endwith %}
-
-                <div class="login-card">
-                    <div class="card shadow-lg">
+                                <img src="{{ url_for('static', filename='images/logo.png') }}"
+                                     alt="NyangaBudget"
+                                     class="logo-img">
                         <div class="card-body p-5">
                             <div class="text-center mb-4">
                                 <img src="{{ url_for('static', filename='images/logo.png') }}"

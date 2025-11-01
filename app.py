@@ -3254,6 +3254,43 @@ def init_db():
     """Initialise la base de données"""
     with app.app_context():
         db.create_all()
+        
+        # Migration: Ajouter colonnes blockchain si elles n'existent pas
+        try:
+            from sqlalchemy import text
+            
+            # Vérifier si colonnes blockchain_hash existent
+            result = db.session.execute(text("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='depenses' AND column_name='blockchain_hash'
+            """))
+            
+            if not result.fetchone():
+                print("[MIGRATION] Ajout colonnes blockchain...")
+                
+                # Depenses
+                db.session.execute(text("""
+                    ALTER TABLE depenses 
+                    ADD COLUMN blockchain_hash VARCHAR(64),
+                    ADD COLUMN prev_hash VARCHAR(64)
+                """))
+                
+                # Revenus
+                db.session.execute(text("""
+                    ALTER TABLE revenus 
+                    ADD COLUMN blockchain_hash VARCHAR(64),
+                    ADD COLUMN prev_hash VARCHAR(64)
+                """))
+                
+                db.session.commit()
+                print("[OK] Migration blockchain terminée")
+            else:
+                print("[OK] Colonnes blockchain déjà présentes")
+                
+        except Exception as e:
+            print(f"[WARNING] Migration blockchain: {str(e)}")
+            db.session.rollback()
 
         # Créer utilisateur admin par défaut s'il n'existe pas
         if not User.query.filter_by(email='admin@nyanga.cm').first():
