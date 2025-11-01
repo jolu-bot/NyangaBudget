@@ -778,6 +778,75 @@ def generer_graphique_tendances(user_id):
     return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
 
+# ==================== INTELLIGENCE ARTIFICIELLE & PRÉDICTION ====================
+
+def predire_depenses_futures(user_id, nb_mois=3):
+    """Prédire les dépenses des prochains mois avec Machine Learning (Linear Regression)
+    
+    Args:
+        user_id: ID de l'utilisateur
+        nb_mois: Nombre de mois à prédire (par défaut 3)
+    
+    Returns:
+        dict: predictions, historique, tendance, confiance
+    """
+    try:
+        from sklearn.linear_model import LinearRegression
+        import numpy as np
+        
+        # Récupérer l'historique des dépenses mensuelles (12 derniers mois minimum)
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=365)  # 12 mois
+        
+        depenses_mensuelles = db.session.query(
+            func.strftime('%Y-%m', Depense.date_created).label('mois'),
+            func.sum(Depense.montant).label('total')
+        ).filter(
+            Depense.user_id == user_id,
+            Depense.date_created >= start_date
+        ).group_by('mois').order_by('mois').all()
+        
+        if len(depenses_mensuelles) < 3:
+            return {
+                'success': False,
+                'message': 'Historique insuffisant (minimum 3 mois requis)',
+                'predictions': []
+            }
+        
+        # Préparer les données pour le modèle
+        X = np.array([[i] for i in range(len(depenses_mensuelles))])
+        y = np.array([float(d.total) for d in depenses_mensuelles])
+        
+        # Créer et entraîner le modèle
+        model = LinearRegression()
+        model.fit(X, y)
+        
+        # Score de confiance (R²)
+        confiance = max(0, min(100, model.score(X, y) * 100))
+        
+        # Générer les prédictions
+        predictions = []
+        for i in range(nb_mois):
+            montant_predit = model.predict([[len(depenses_mensuelles) + i]])[0]
+            mois_futur = (end_date + timedelta(days=30 * (i + 1))).strftime('%Y-%m')
+            predictions.append({'mois': mois_futur, 'montant_predit': round(montant_predit, 2)})
+        
+        # Déterminer la tendance
+        slope = model.coef_[0]
+        tendance = 'hausse' if slope > 1000 else ('baisse' if slope < -1000 else 'stable')
+        
+        return {
+            'success': True,
+            'predictions': predictions,
+            'historique': [{'mois': d.mois, 'montant_reel': float(d.total)} for d in depenses_mensuelles],
+            'tendance': tendance,
+            'confiance': round(confiance, 1)
+        }
+    
+    except Exception as e:
+        return {'success': False, 'message': f'Erreur: {str(e)}', 'predictions': []}
+
+
 def generer_csv(user_id):
     """Génère un fichier CSV consolidé de toutes les transactions"""
     depenses = Depense.query.filter_by(user_id=user_id).all()
@@ -2467,6 +2536,16 @@ def score_sante():
         db.session.rollback()
 
     return jsonify(score_data)
+
+
+@app.route('/api/predictions')
+@login_required
+@cache.cached(timeout=600, key_prefix=lambda: f'predictions_{current_user.id}')  # Cache 10 min
+def api_predictions():
+    """API: Prédictions ML des dépenses futures (3 mois)"""
+    nb_mois = request.args.get('mois', 3, type=int)
+    predictions = predire_depenses_futures(current_user.id, nb_mois)
+    return jsonify(predictions)
 
 
 @app.route('/notifications')
