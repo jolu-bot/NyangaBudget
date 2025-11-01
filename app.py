@@ -265,6 +265,10 @@ class Categorie(db.Model):
 class Depense(db.Model):
     """Modèle pour les dépenses"""
     __tablename__ = 'depenses'
+    __table_args__ = (
+        db.Index('idx_depenses_user_date', 'user_id', 'date_created'),
+        db.Index('idx_depenses_categorie', 'categorie_id'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     nom = db.Column(db.String(200), nullable=False)
@@ -280,6 +284,9 @@ class Depense(db.Model):
 class Revenu(db.Model):
     """Modèle pour les revenus"""
     __tablename__ = 'revenus'
+    __table_args__ = (
+        db.Index('idx_revenus_user_date', 'user_id', 'date_created'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     source = db.Column(db.String(200), nullable=False)
@@ -294,6 +301,10 @@ class Revenu(db.Model):
 class Budget(db.Model):
     """Modèle pour les budgets mensuels"""
     __tablename__ = 'budgets'
+    __table_args__ = (
+        db.Index('idx_budgets_user_mois', 'user_id', 'mois'),
+        db.Index('idx_budgets_categorie', 'categorie_id'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     mois = db.Column(db.String(7), nullable=False)
