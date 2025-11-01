@@ -875,6 +875,153 @@ def verifier_integrite_blockchain(user_id, type_transaction='depense'):
     }
 
 
+# ==================== ALERTES WHATSAPP (TWILIO) ====================
+
+def envoyer_alerte_whatsapp(telephone, message):
+    """Envoie une alerte WhatsApp via Twilio
+    
+    Configuration requise:
+    - TWILIO_ACCOUNT_SID
+    - TWILIO_AUTH_TOKEN
+    - TWILIO_WHATSAPP_FROM (format: whatsapp:+14155238886)
+    
+    Args:
+        telephone: Numéro format international (ex: +237670000000)
+        message: Texte de l'alerte
+    
+    Returns:
+        dict: {success: bool, message: str, sid: str}
+    """
+    try:
+        # Vérifier variables d'environnement
+        account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
+        auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
+        whatsapp_from = os.environ.get('TWILIO_WHATSAPP_FROM', 'whatsapp:+14155238886')
+        
+        if not account_sid or not auth_token:
+            return {
+                'success': False,
+                'message': 'Configuration Twilio manquante (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)',
+                'sid': None
+            }
+        
+        # Import Twilio (optionnel)
+        try:
+            from twilio.rest import Client
+        except ImportError:
+            return {
+                'success': False,
+                'message': 'Module twilio non installé. pip install twilio',
+                'sid': None
+            }
+        
+        # Créer client Twilio
+        client = Client(account_sid, auth_token)
+        
+        # Envoyer message WhatsApp
+        message_obj = client.messages.create(
+            from_=whatsapp_from,
+            body=message,
+            to=f'whatsapp:{telephone}'
+        )
+        
+        return {
+            'success': True,
+            'message': 'Alerte WhatsApp envoyée',
+            'sid': message_obj.sid
+        }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'message': f'Erreur envoi WhatsApp: {str(e)}',
+            'sid': None
+        }
+
+
+def verifier_depassement_budget(user_id):
+    """Vérifie si un budget est dépassé et envoie alerte si configuré
+    
+    Returns:
+        list: Liste des alertes déclenchées
+    """
+    alertes = []
+    mois_actuel = datetime.now().strftime('%Y-%m')
+    
+    # Récupérer tous les budgets du mois actuel
+    budgets = Budget.query.filter_by(user_id=user_id, mois=mois_actuel).all()
+    
+    for budget in budgets:
+        # Calculer dépenses pour ce budget
+        query = Depense.query.filter_by(user_id=user_id)
+        
+        if budget.categorie_id:
+            query = query.filter_by(categorie_id=budget.categorie_id)
+        
+        # Filtrer par mois
+        query = query.filter(
+            func.strftime('%Y-%m', Depense.date_created) == mois_actuel
+        )
+        
+        total_depense = db.session.query(func.sum(Depense.montant)).filter(
+            Depense.id.in_([d.id for d in query.all()])
+        ).scalar() or 0
+        
+        # Calculer pourcentage
+        pourcentage = (total_depense / budget.montant_limite * 100) if budget.montant_limite > 0 else 0
+        
+        # Vérifier si seuil dépassé
+        if pourcentage >= budget.alerte_seuil:
+            categorie_nom = budget.categorie.nom if budget.categorie_id else "Général"
+            
+            message = f"""
+🚨 *Alerte Budget NyangaBudget*
+
+Budget: {categorie_nom}
+Limite: {budget.montant_limite:,.0f} FCFA
+Dépensé: {total_depense:,.0f} FCFA
+Pourcentage: {pourcentage:.1f}%
+
+⚠️ Vous avez dépassé le seuil de {budget.alerte_seuil}%!
+            """.strip()
+            
+            # Créer notification interne
+            try:
+                notification = Notification(
+                    user_id=user_id,
+                    type='alerte_budget',
+                    titre=f'⚠️ Budget {categorie_nom} dépassé',
+                    message=f'{pourcentage:.1f}% du budget atteint ({total_depense:,.0f}/{budget.montant_limite:,.0f} FCFA)',
+                    priorite='haute'
+                )
+                db.session.add(notification)
+                db.session.commit()
+            except:
+                pass
+            
+            # Envoyer WhatsApp si configuré
+            user = User.query.get(user_id)
+            telephone = os.environ.get(f'USER_{user_id}_PHONE')  # Format: USER_1_PHONE=+237670000000
+            
+            if telephone:
+                resultat = envoyer_alerte_whatsapp(telephone, message)
+                alertes.append({
+                    'budget': categorie_nom,
+                    'pourcentage': pourcentage,
+                    'whatsapp_sent': resultat['success'],
+                    'whatsapp_message': resultat['message']
+                })
+            else:
+                alertes.append({
+                    'budget': categorie_nom,
+                    'pourcentage': pourcentage,
+                    'whatsapp_sent': False,
+                    'whatsapp_message': 'Numéro téléphone non configuré'
+                })
+    
+    return alertes
+
+
 # ==================== INTELLIGENCE ARTIFICIELLE & PRÉDICTION ====================
 
 def predire_depenses_futures(user_id, nb_mois=3):
@@ -2759,6 +2906,21 @@ def api_blockchain_stats():
         'revenus': {'total': nb_revenus, 'avec_hash': nb_revenus_hash},
         'transferts': {'total': nb_transferts},
         'couverture_blockchain': round((nb_depenses_hash + nb_revenus_hash) / max(nb_depenses + nb_revenus, 1) * 100, 2)
+    })
+
+
+@app.route('/api/budget/alertes')
+@login_required
+def api_budget_alertes():
+    """API: Vérifier et déclencher alertes budget (WhatsApp si configuré)"""
+    alertes = verifier_depassement_budget(current_user.id)
+    
+    return jsonify({
+        'user_id': current_user.id,
+        'nb_alertes': len(alertes),
+        'alertes': alertes,
+        'whatsapp_configured': bool(os.environ.get('TWILIO_ACCOUNT_SID')),
+        'timestamp': datetime.now().isoformat()
     })
 
 
