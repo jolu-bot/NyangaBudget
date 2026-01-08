@@ -108,6 +108,25 @@ MASTER_ENCRYPTION_KEY = MASTER_ENCRYPTION_KEY_STR.encode() if isinstance(
 # Initialisation de la base de données
 db = SQLAlchemy(app)
 
+# ==================== UTILITAIRES BASE DE DONNÉES ====================
+
+def format_date_sql(format_string, column):
+    """
+    Fonction utilitaire pour formater des dates compatible MySQL et SQLite
+    MySQL utilise DATE_FORMAT(), SQLite utilise strftime()
+    """
+    database_url = app.config['SQLALCHEMY_DATABASE_URI']
+    
+    if 'mysql' in database_url or 'pymysql' in database_url:
+        # MySQL: convertir format strftime vers DATE_FORMAT
+        mysql_format = format_string.replace('%Y', '%Y').replace('%m', '%m').replace('%d', '%d')
+        mysql_format = mysql_format.replace('%H', '%H').replace('%M', '%i').replace('%S', '%S')
+        mysql_format = mysql_format.replace('%W', '%u')  # Semaine de l'année
+        return func.date_format(column, mysql_format)
+    else:
+        # SQLite
+        return func.strftime(format_string, column)
+
 # Initialisation de Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -703,14 +722,14 @@ def verifier_alertes_budget(user_id):
             depenses_mois = db.session.query(func.sum(Depense.montant)).filter(
                 Depense.user_id == user_id,
                 Depense.categorie_id == budget.categorie_id,
-                func.strftime('%Y-%m', Depense.date_created) == mois_actuel
+                format_date_sql('%Y-%m', Depense.date_created) == mois_actuel
             ).scalar() or 0.0
             categorie_nom = budget.categorie.nom if budget.categorie else "Général"
         else:
             # Budget global
             depenses_mois = db.session.query(func.sum(Depense.montant)).filter(
                 Depense.user_id == user_id,
-                func.strftime('%Y-%m', Depense.date_created) == mois_actuel
+                format_date_sql('%Y-%m', Depense.date_created) == mois_actuel
             ).scalar() or 0.0
             categorie_nom = "Global"
 
@@ -775,13 +794,13 @@ def generer_graphique_mensuel(user_id):
 
     # Agrégation des dépenses par mois
     depenses_mensuelles = db.session.query(
-        func.strftime('%Y-%m', Depense.date_created).label('mois'),
+        format_date_sql('%Y-%m', Depense.date_created).label('mois'),
         func.sum(Depense.montant).label('total')
     ).filter(Depense.user_id == user_id, Depense.date_created >= start_date).group_by('mois').all()
 
     # Agrégation des revenus par mois
     revenus_mensuels = db.session.query(
-        func.strftime('%Y-%m', Revenu.date_created).label('mois'),
+        format_date_sql('%Y-%m', Revenu.date_created).label('mois'),
         func.sum(Revenu.montant).label('total')
     ).filter(Revenu.user_id == user_id, Revenu.date_created >= start_date).group_by('mois').all()
 
@@ -823,7 +842,7 @@ def generer_graphique_tendances(user_id):
 
     # Dépenses par semaine
     depenses_hebdo = db.session.query(
-        func.strftime('%Y-%W', Depense.date_created).label('semaine'),
+        format_date_sql('%Y-%W', Depense.date_created).label('semaine'),
         func.sum(Depense.montant).label('total')
     ).filter(Depense.user_id == user_id, Depense.date_created >= start_date).group_by('semaine').all()
 
@@ -1026,7 +1045,7 @@ def verifier_depassement_budget(user_id):
 
         # Filtrer par mois
         query = query.filter(
-            func.strftime('%Y-%m', Depense.date_created) == mois_actuel
+            format_date_sql('%Y-%m', Depense.date_created) == mois_actuel
         )
 
         total_depense = db.session.query(func.sum(Depense.montant)).filter(
@@ -1111,7 +1130,7 @@ def predire_depenses_futures(user_id, nb_mois=3):
         start_date = end_date - timedelta(days=365)  # 12 mois
 
         depenses_mensuelles = db.session.query(
-            func.strftime('%Y-%m', Depense.date_created).label('mois'),
+            format_date_sql('%Y-%m', Depense.date_created).label('mois'),
             func.sum(Depense.montant).label('total')
         ).filter(
             Depense.user_id == user_id,
@@ -1473,7 +1492,7 @@ def calculer_score_sante_financiere(user_id):
         for budget in budgets:
             depenses_mois = db.session.query(func.sum(Depense.montant)).filter(
                 Depense.user_id == user_id,
-                func.strftime('%Y-%m', Depense.date_created) == budget.mois
+                format_date_sql('%Y-%m', Depense.date_created) == budget.mois
             ).scalar() or 0
 
             if depenses_mois <= budget.montant_limite:
@@ -2141,12 +2160,12 @@ def budgets():
             depenses_periode = db.session.query(func.sum(Depense.montant)).filter(
                 Depense.user_id == current_user.id,
                 Depense.categorie_id == budget.categorie_id,
-                func.strftime('%Y-%m', Depense.date_created) == budget.mois
+                format_date_sql('%Y-%m', Depense.date_created) == budget.mois
             ).scalar() or 0
         else:
             depenses_periode = db.session.query(func.sum(Depense.montant)).filter(
                 Depense.user_id == current_user.id,
-                func.strftime('%Y-%m', Depense.date_created) == budget.mois
+                format_date_sql('%Y-%m', Depense.date_created) == budget.mois
             ).scalar() or 0
 
         pourcentage = (depenses_periode / budget.montant_limite *
