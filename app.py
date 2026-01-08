@@ -332,19 +332,8 @@ class Revenu(db.Model):
 
     def generer_blockchain_hash(self, prev_hash=None):
         """Génère un hash blockchain pour cette transaction (TEMPORAIREMENT DESACTIVE)"""
-        pass
-        # data = f"{self.id}{self.source}{self.montant}{self.user_id}{self.date_created}{prev_hash or ''}"
-        # self.prev_hash = prev_hash
-        # self.blockchain_hash = hashlib.sha256(data.encode()).hexdigest()
-        # return self.blockchain_hash
         """Génère un hash blockchain pour cette transaction"""
-        data = f"{
-            self.id}{
-            self.source}{
-            self.montant}{
-                self.user_id}{
-                    self.date_created}{
-                        prev_hash or ''}"
+        data = f"{self.id}{self.source}{self.montant}{self.user_id}{self.date_created}{prev_hash or ''}"
         self.prev_hash = prev_hash
         self.blockchain_hash = hashlib.sha256(data.encode()).hexdigest()
         return self.blockchain_hash
