@@ -412,12 +412,7 @@ class TransfertCompte(db.Model):
 
     def generer_hash(self):
         """Génère un hash unique pour la transaction (immuabilité)"""
-        data = f"{
-            self.id}{
-            self.montant}{
-            self.compte_source_id}{
-                self.compte_destination_id}{
-                    self.date_created}"
+        data = f"{self.id}{self.montant}{self.compte_source_id}{self.compte_destination_id}{self.date_created}"
         self.hash_transaction = hashlib.sha256(data.encode()).hexdigest()
 
     def __repr__(self):
