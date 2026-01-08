@@ -1058,10 +1058,7 @@ Pourcentage: {pourcentage:.1f}%
                     user_id=user_id,
                     type='alerte_budget',
                     titre=f'⚠️ Budget {categorie_nom} dépassé',
-                    message=f'{
-                        pourcentage:.1f}% du budget atteint ({
-                        total_depense:,.0f}/{
-                        budget.montant_limite:,.0f} FCFA)',
+                    message=f'{pourcentage:.1f}% du budget atteint ({total_depense:,.0f}/{budget.montant_limite:,.0f} FCFA)',
                     priorite='haute'
                 )
                 db.session.add(notification)
