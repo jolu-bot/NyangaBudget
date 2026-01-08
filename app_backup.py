@@ -14,7 +14,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file, make_response
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
-from sqlalchemy import func, extract
+from sqlalchemy import func
 import plotly.graph_objs as go
 import plotly
 import json
@@ -46,6 +46,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # ==================== MODÈLES DE DONNÉES ====================
+
 
 class Depense(db.Model):
     """Modèle pour les dépenses"""
@@ -231,7 +232,7 @@ def generer_csv():
 def generer_pdf():
     """Génère un rapport PDF avec résumé et top 10 des dépenses"""
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm)
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2 * cm, bottomMargin=2 * cm)
     elements = []
     styles = getSampleStyleSheet()
 
@@ -247,12 +248,12 @@ def generer_pdf():
 
     # Titre
     elements.append(Paragraph('NyangaBudget - Rapport Financier', title_style))
-    elements.append(Spacer(1, 0.5*cm))
+    elements.append(Spacer(1, 0.5 * cm))
 
     # Date du rapport
     date_rapport = datetime.now().strftime('%d/%m/%Y à %H:%M')
     elements.append(Paragraph(f'<b>Date du rapport:</b> {date_rapport}', styles['Normal']))
-    elements.append(Spacer(1, 0.5*cm))
+    elements.append(Spacer(1, 0.5 * cm))
 
     # Statistiques globales
     stats = calculer_statistiques()
@@ -266,7 +267,7 @@ def generer_pdf():
         ['Nombre de revenus', str(stats['nb_revenus'])]
     ]
 
-    table_stats = Table(data_stats, colWidths=[8*cm, 8*cm])
+    table_stats = Table(data_stats, colWidths=[8 * cm, 8 * cm])
     table_stats.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3498DB')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -282,11 +283,11 @@ def generer_pdf():
     ]))
 
     elements.append(table_stats)
-    elements.append(Spacer(1, 1*cm))
+    elements.append(Spacer(1, 1 * cm))
 
     # Top 10 des dépenses
     elements.append(Paragraph('<b>Top 10 des dépenses les plus importantes</b>', styles['Heading2']))
-    elements.append(Spacer(1, 0.3*cm))
+    elements.append(Spacer(1, 0.3 * cm))
 
     top_depenses = Depense.query.order_by(Depense.montant.desc()).limit(10).all()
 
@@ -300,7 +301,7 @@ def generer_pdf():
                 d.date_created.strftime('%d/%m/%Y')
             ])
 
-        table_depenses = Table(data_depenses, colWidths=[1*cm, 9*cm, 3*cm, 3*cm])
+        table_depenses = Table(data_depenses, colWidths=[1 * cm, 9 * cm, 3 * cm, 3 * cm])
         table_depenses.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E74C3C')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -520,13 +521,13 @@ def init_db():
 
 if __name__ == '__main__':
     init_db()
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("NyangaBudget - Application demarree!")
-    print("="*50)
+    print("=" * 50)
     print("URL: http://localhost:5000")
     print("Dashboard: http://localhost:5000/dashboard")
     print("Export CSV: http://localhost:5000/export/csv")
     print("Export PDF: http://localhost:5000/export/pdf")
-    print("="*50 + "\n")
+    print("=" * 50 + "\n")
 
     app.run(debug=True, host='0.0.0.0', port=5000)

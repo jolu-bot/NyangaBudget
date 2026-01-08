@@ -19,9 +19,10 @@
 # ✅ IA Prédictive & Score de santé financière
 # ✅ Notifications en temps réel
 # ✅ QR Code d'invitation familiale
+from flask_caching import Cache
 import hashlib
 
-from flask import Flask, render_template, request, redirect, url_for, flash, send_file, make_response, jsonify, abort
+from flask import Flask, render_template, request, redirect, url_for, flash, send_file, make_response, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_limiter import Limiter
@@ -30,7 +31,7 @@ from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
-from sqlalchemy import func, extract, or_, and_
+from sqlalchemy import func
 import plotly.graph_objs as go
 import plotly
 import json
@@ -61,7 +62,8 @@ vault_folder = os.path.join(upload_folder, 'vault')  # Coffre-fort crypté
 heritage_folder = os.path.join(upload_folder, 'heritage')  # Documents héritage
 receipts_folder = os.path.join(upload_folder, 'receipts')  # Reçus scannés
 
-for folder in [data_folder, upload_folder, vault_folder, heritage_folder, receipts_folder]:
+for folder in [data_folder, upload_folder,
+               vault_folder, heritage_folder, receipts_folder]:
     if not os.path.exists(folder):
         os.makedirs(folder)
         print(f"[OK] Dossier cree: {folder}")
@@ -70,13 +72,15 @@ for folder in [data_folder, upload_folder, vault_folder, heritage_folder, receip
 app = Flask(__name__)
 
 # SECRET_KEY: utilise la variable d'environnement ou valeur par défaut pour dev
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nyanga-2.0-ultra-secure-key-joyed-cameroon-2025')
+app.config['SECRET_KEY'] = os.environ.get(
+    'SECRET_KEY', 'nyanga-2.0-ultra-secure-key-joyed-cameroon-2025')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Max 16MB par fichier
 app.config['UPLOAD_FOLDER'] = upload_folder
 app.config['VAULT_FOLDER'] = vault_folder
 app.config['HERITAGE_FOLDER'] = heritage_folder
 app.config['RECEIPTS_FOLDER'] = receipts_folder
-app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'png', 'jpg', 'jpeg', 'txt', 'doc', 'docx'}
+app.config['ALLOWED_EXTENSIONS'] = {
+    'pdf', 'png', 'jpg', 'jpeg', 'txt', 'doc', 'docx'}
 
 # Base de données - Support PostgreSQL (Render) ET SQLite (local)
 DATABASE_URL = os.environ.get('DATABASE_URL')
@@ -86,18 +90,20 @@ if DATABASE_URL:
     if DATABASE_URL.startswith('postgres://'):
         DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
-    print(f"[OK] Utilisation de PostgreSQL (Production)")
+    print("[OK] Utilisation de PostgreSQL (Production)")
 else:
     # Développement local: SQLite
     db_path = os.path.join(data_folder, 'nyanga_v2.db')
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
-    print(f"[OK] Utilisation de SQLite (Développement local)")
+    print("[OK] Utilisation de SQLite (Développement local)")
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Clé maître de cryptage (utilise variable d'environnement en production)
-MASTER_ENCRYPTION_KEY_STR = os.environ.get('MASTER_ENCRYPTION_KEY', 'YourSecureMasterKey32BytesHere!!')
-MASTER_ENCRYPTION_KEY = MASTER_ENCRYPTION_KEY_STR.encode() if isinstance(MASTER_ENCRYPTION_KEY_STR, str) else MASTER_ENCRYPTION_KEY_STR
+MASTER_ENCRYPTION_KEY_STR = os.environ.get(
+    'MASTER_ENCRYPTION_KEY', 'YourSecureMasterKey32BytesHere!!')
+MASTER_ENCRYPTION_KEY = MASTER_ENCRYPTION_KEY_STR.encode() if isinstance(
+    MASTER_ENCRYPTION_KEY_STR, str) else MASTER_ENCRYPTION_KEY_STR
 
 # Initialisation de la base de données
 db = SQLAlchemy(app)
@@ -111,8 +117,12 @@ login_manager.login_message_category = 'warning'
 
 # ==================== SÉCURITÉ ====================
 
-# Protection CSRF
+# Protection CSRF avec configuration permissive pour développement local
 csrf = CSRFProtect(app)
+# Configuration permissive pour développement
+app.config['WTF_CSRF_ENABLED'] = False  # Désactiver CSRF en développement
+app.config['WTF_CSRF_TIME_LIMIT'] = None
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 
 # Rate Limiting (protection contre brute force)
 limiter = Limiter(
@@ -124,7 +134,6 @@ limiter = Limiter(
 
 # ==================== PERFORMANCE - CACHE ====================
 
-from flask_caching import Cache
 
 # Configuration du cache
 cache_config = {
@@ -159,62 +168,70 @@ ALLOWED_MIME_TYPES = {
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
 }
 
+
 def allowed_file(filename):
     """Vérifie si l'extension du fichier est autorisée"""
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+           filename.rsplit('.', 1)[1].lower(
+           ) in app.config['ALLOWED_EXTENSIONS']
+
 
 def validate_file_upload(file):
     """Validation stricte des fichiers uploadés
-    
+
     Vérifie :
     1. Extension du fichier
     2. MIME type réel (détection contenu) - optionnel si python-magic non disponible
     3. Taille du fichier
-    
+
     Returns:
         tuple: (bool, str) - (valide, message_erreur)
     """
     if not file or file.filename == '':
         return False, "Aucun fichier sélectionné"
-    
+
     # 1. Vérifier l'extension
     if not allowed_file(file.filename):
         return False, f"Type de fichier non autorisé. Extensions acceptées : {', '.join(app.config['ALLOWED_EXTENSIONS'])}"
-    
+
     # 2. Vérifier le MIME type réel (optionnel)
     try:
         import magic
         # Lire les premiers 2048 octets pour détecter le type
         file_header = file.read(2048)
         file.seek(0)  # Remettre le curseur au début
-        
+
         mime_type = magic.from_buffer(file_header, mime=True)
-        
+
         # Vérifier si le MIME type correspond à l'extension
         extension = '.' + file.filename.rsplit('.', 1)[1].lower()
-        
+
         if mime_type not in ALLOWED_MIME_TYPES:
             return False, f"Type MIME non autorisé : {mime_type}"
-        
+
         if extension not in ALLOWED_MIME_TYPES[mime_type]:
-            return False, f"Le contenu du fichier ne correspond pas à son extension"
-    
+            return (False,
+                    "Le contenu du fichier ne correspond pas à son extension")
+
     except ImportError:
-        # Si python-magic n'est pas installé, on continue avec validation basique
-        print("[WARNING] python-magic non disponible, validation MIME désactivée")
+        # Si python-magic n'est pas installé, on continue avec validation
+        # basique
+        print(
+            "[WARNING] python-magic non disponible, "
+            "validation MIME désactivée")
     except Exception as e:
         print(f"[WARNING] Erreur validation MIME: {str(e)}")
-    
-    # 3. Vérifier la taille (déjà géré par Flask MAX_CONTENT_LENGTH, mais double vérification)
+
+    # 3. Vérifier la taille (déjà géré par Flask MAX_CONTENT_LENGTH, mais
+    # double vérification)
     file.seek(0, 2)  # Aller à la fin
     file_size = file.tell()
     file.seek(0)  # Remettre au début
-    
+
     max_size = app.config['MAX_CONTENT_LENGTH']
     if file_size > max_size:
-        return False, f"Fichier trop volumineux (max: {max_size // (1024*1024)}MB)"
-    
+        return False, f"Fichier trop volumineux (max: {max_size // (1024 * 1024)}MB)"
+
     return True, "Fichier valide"
 
 
@@ -231,10 +248,14 @@ class User(UserMixin, db.Model):
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relations
-    depenses = db.relationship('Depense', backref='user', lazy=True, cascade='all, delete-orphan')
-    revenus = db.relationship('Revenu', backref='user', lazy=True, cascade='all, delete-orphan')
-    categories = db.relationship('Categorie', backref='user', lazy=True, cascade='all, delete-orphan')
-    budgets = db.relationship('Budget', backref='user', lazy=True, cascade='all, delete-orphan')
+    depenses = db.relationship(
+        'Depense', backref='user', lazy=True, cascade='all, delete-orphan')
+    revenus = db.relationship('Revenu', backref='user',
+                              lazy=True, cascade='all, delete-orphan')
+    categories = db.relationship(
+        'Categorie', backref='user', lazy=True, cascade='all, delete-orphan')
+    budgets = db.relationship('Budget', backref='user',
+                              lazy=True, cascade='all, delete-orphan')
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -275,7 +296,8 @@ class Depense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nom = db.Column(db.String(200), nullable=False)
     montant = db.Column(db.Float, nullable=False)
-    categorie_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=True)
+    categorie_id = db.Column(db.Integer, db.ForeignKey(
+        'categories.id'), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
     # blockchain_hash = db.Column(db.String(64))  # TEMPORAIREMENT DESACTIVE
@@ -316,7 +338,13 @@ class Revenu(db.Model):
         # self.blockchain_hash = hashlib.sha256(data.encode()).hexdigest()
         # return self.blockchain_hash
         """Génère un hash blockchain pour cette transaction"""
-        data = f"{self.id}{self.source}{self.montant}{self.user_id}{self.date_created}{prev_hash or ''}"
+        data = f"{
+            self.id}{
+            self.source}{
+            self.montant}{
+                self.user_id}{
+                    self.date_created}{
+                        prev_hash or ''}"
         self.prev_hash = prev_hash
         self.blockchain_hash = hashlib.sha256(data.encode()).hexdigest()
         return self.blockchain_hash
@@ -336,7 +364,8 @@ class Budget(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     mois = db.Column(db.String(7), nullable=False)
     montant_limite = db.Column(db.Float, nullable=False)
-    categorie_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=True)
+    categorie_id = db.Column(db.Integer, db.ForeignKey(
+        'categories.id'), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     alerte_seuil = db.Column(db.Integer, default=80)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
@@ -352,8 +381,10 @@ class CompteBancaire(db.Model):
     __tablename__ = 'comptes_bancaires'
 
     id = db.Column(db.Integer, primary_key=True)
-    nom = db.Column(db.String(100), nullable=False)  # Ex: "Orange Money", "Afriland"
-    type_compte = db.Column(db.String(50), nullable=False)  # mobile_money, banque, cash, crypto
+    # Ex: "Orange Money", "Afriland"
+    nom = db.Column(db.String(100), nullable=False)
+    # mobile_money, banque, cash, crypto
+    type_compte = db.Column(db.String(50), nullable=False)
     numero_compte = db.Column(db.String(100))  # Numéro de compte (optionnel)
     solde_initial = db.Column(db.Float, default=0.0)
     solde_actuel = db.Column(db.Float, default=0.0)
@@ -365,8 +396,10 @@ class CompteBancaire(db.Model):
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relations
-    transferts_emis = db.relationship('TransfertCompte', foreign_keys='TransfertCompte.compte_source_id', backref='compte_source', lazy=True)
-    transferts_recus = db.relationship('TransfertCompte', foreign_keys='TransfertCompte.compte_destination_id', backref='compte_destination', lazy=True)
+    transferts_emis = db.relationship(
+        'TransfertCompte', foreign_keys='TransfertCompte.compte_source_id', backref='compte_source', lazy=True)
+    transferts_recus = db.relationship(
+        'TransfertCompte', foreign_keys='TransfertCompte.compte_destination_id', backref='compte_destination', lazy=True)
 
     def __repr__(self):
         return f'<Compte {self.nom}: {self.solde_actuel} {self.devise}>'
@@ -379,15 +412,23 @@ class TransfertCompte(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     montant = db.Column(db.Float, nullable=False)
     motif = db.Column(db.String(200))
-    compte_source_id = db.Column(db.Integer, db.ForeignKey('comptes_bancaires.id'), nullable=False)
-    compte_destination_id = db.Column(db.Integer, db.ForeignKey('comptes_bancaires.id'), nullable=False)
+    compte_source_id = db.Column(db.Integer, db.ForeignKey(
+        'comptes_bancaires.id'), nullable=False)
+    compte_destination_id = db.Column(
+        db.Integer, db.ForeignKey('comptes_bancaires.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    hash_transaction = db.Column(db.String(64))  # Hash SHA-256 pour traçabilité blockchain-like
+    # Hash SHA-256 pour traçabilité blockchain-like
+    hash_transaction = db.Column(db.String(64))
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
 
     def generer_hash(self):
         """Génère un hash unique pour la transaction (immuabilité)"""
-        data = f"{self.id}{self.montant}{self.compte_source_id}{self.compte_destination_id}{self.date_created}"
+        data = f"{
+            self.id}{
+            self.montant}{
+            self.compte_source_id}{
+                self.compte_destination_id}{
+                    self.date_created}"
         self.hash_transaction = hashlib.sha256(data.encode()).hexdigest()
 
     def __repr__(self):
@@ -401,12 +442,15 @@ class Famille(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nom = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
-    code_invitation = db.Column(db.String(10), unique=True, nullable=False)  # Code unique 8 chars
-    chef_famille_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    code_invitation = db.Column(
+        db.String(10), unique=True, nullable=False)  # Code unique 8 chars
+    chef_famille_id = db.Column(
+        db.Integer, db.ForeignKey('users.id'), nullable=False)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relations
-    membres = db.relationship('MembreFamille', backref='famille', lazy=True, cascade='all, delete-orphan')
+    membres = db.relationship(
+        'MembreFamille', backref='famille', lazy=True, cascade='all, delete-orphan')
     chef = db.relationship('User', foreign_keys=[chef_famille_id])
 
     def generer_code_invitation(self):
@@ -428,15 +472,20 @@ class MembreFamille(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    famille_id = db.Column(db.Integer, db.ForeignKey('familles.id'), nullable=False)
-    role = db.Column(db.String(20), default='membre')  # chef, parent, enfant, membre, invite
-    statut = db.Column(db.String(20), default='en_attente')  # en_attente, valide, refuse
-    valide_par_id = db.Column(db.Integer, db.ForeignKey('users.id'))  # Admin qui a validé
+    famille_id = db.Column(db.Integer, db.ForeignKey(
+        'familles.id'), nullable=False)
+    # chef, parent, enfant, membre, invite
+    role = db.Column(db.String(20), default='membre')
+    # en_attente, valide, refuse
+    statut = db.Column(db.String(20), default='en_attente')
+    valide_par_id = db.Column(db.Integer, db.ForeignKey(
+        'users.id'))  # Admin qui a validé
     date_demande = db.Column(db.DateTime, default=datetime.utcnow)
     date_validation = db.Column(db.DateTime)
 
     # Relations
-    user = db.relationship('User', foreign_keys=[user_id], backref='familles_membre')
+    user = db.relationship('User', foreign_keys=[
+                           user_id], backref='familles_membre')
     validateur = db.relationship('User', foreign_keys=[valide_par_id])
 
     def __repr__(self):
@@ -449,14 +498,18 @@ class CoffreFort(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     titre = db.Column(db.String(200), nullable=False)
-    type_document = db.Column(db.String(50), nullable=False)  # document, mot_de_passe, note, code_pin
+    # document, mot_de_passe, note, code_pin
+    type_document = db.Column(db.String(50), nullable=False)
     contenu_crypte = db.Column(db.Text)  # Texte crypté (notes, mots de passe)
     fichier_crypte = db.Column(db.String(255))  # Nom du fichier crypté
-    est_critique = db.Column(db.Boolean, default=False)  # Document ultra-important
+    # Document ultra-important
+    est_critique = db.Column(db.Boolean, default=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    famille_id = db.Column(db.Integer, db.ForeignKey('familles.id'))  # Partagé avec famille
+    famille_id = db.Column(db.Integer, db.ForeignKey(
+        'familles.id'))  # Partagé avec famille
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
-    date_modified = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    date_modified = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def __repr__(self):
         return f'<CoffreFort {self.titre} | {self.type_document}>'
@@ -468,7 +521,8 @@ class Heritage(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     titre = db.Column(db.String(200), nullable=False)
-    type_bien = db.Column(db.String(50), nullable=False)  # immobilier, vehicule, compte, objet_valeur, document
+    # immobilier, vehicule, compte, objet_valeur, document
+    type_bien = db.Column(db.String(50), nullable=False)
     description = db.Column(db.Text)
     valeur_estimee = db.Column(db.Float)
     fichier_crypte = db.Column(db.String(255))  # Document légal crypté
@@ -478,7 +532,8 @@ class Heritage(db.Model):
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relations
-    beneficiaires = db.relationship('Beneficiaire', backref='heritage', lazy=True, cascade='all, delete-orphan')
+    beneficiaires = db.relationship(
+        'Beneficiaire', backref='heritage', lazy=True, cascade='all, delete-orphan')
 
     def __repr__(self):
         return f'<Heritage {self.titre} | {self.type_bien}>'
@@ -489,11 +544,14 @@ class Beneficiaire(db.Model):
     __tablename__ = 'beneficiaires'
 
     id = db.Column(db.Integer, primary_key=True)
-    heritage_id = db.Column(db.Integer, db.ForeignKey('heritage.id'), nullable=False)
+    heritage_id = db.Column(db.Integer, db.ForeignKey(
+        'heritage.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    pourcentage = db.Column(db.Float, default=100.0)  # % du bien (si plusieurs bénéficiaires)
+    # % du bien (si plusieurs bénéficiaires)
+    pourcentage = db.Column(db.Float, default=100.0)
     message_personnel = db.Column(db.Text)  # Message laissé au bénéficiaire
-    condition_deblocage = db.Column(db.String(100))  # inactivite_30j, deces, urgence
+    # inactivite_30j, deces, urgence
+    condition_deblocage = db.Column(db.String(100))
     est_notifie = db.Column(db.Boolean, default=False)
     date_notification = db.Column(db.DateTime)
 
@@ -510,12 +568,14 @@ class Notification(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    type_notif = db.Column(db.String(50), nullable=False)  # budget, famille, heritage, compte, alerte
+    # budget, famille, heritage, compte, alerte
+    type_notif = db.Column(db.String(50), nullable=False)
     titre = db.Column(db.String(200), nullable=False)
     message = db.Column(db.Text)
     lien = db.Column(db.String(255))  # URL de redirection
     est_lue = db.Column(db.Boolean, default=False)
-    priorite = db.Column(db.String(20), default='normale')  # basse, normale, haute, critique
+    # basse, normale, haute, critique
+    priorite = db.Column(db.String(20), default='normale')
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
@@ -529,7 +589,8 @@ class ScoreSante(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     score = db.Column(db.Integer, default=50)  # Score 0-100
-    niveau = db.Column(db.String(20))  # critique, faible, moyen, bon, excellent
+    # critique, faible, moyen, bon, excellent
+    niveau = db.Column(db.String(20))
     facteurs_positifs = db.Column(db.Text)  # JSON des points forts
     facteurs_negatifs = db.Column(db.Text)  # JSON des points à améliorer
     suggestions = db.Column(db.Text)  # JSON des suggestions IA
@@ -549,7 +610,8 @@ class Rappel(db.Model):
     description = db.Column(db.Text)
     montant = db.Column(db.Float)
     date_echeance = db.Column(db.DateTime, nullable=False)
-    type_rappel = db.Column(db.String(50), default='paiement')  # paiement, facture, echeance, autre
+    # paiement, facture, echeance, autre
+    type_rappel = db.Column(db.String(50), default='paiement')
     est_recurrent = db.Column(db.Boolean, default=False)
     frequence = db.Column(db.String(20))  # mensuel, hebdomadaire, annuel
     est_complete = db.Column(db.Boolean, default=False)
@@ -566,7 +628,8 @@ class ObjectifFinancier(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    famille_id = db.Column(db.Integer, db.ForeignKey('familles.id'))  # Objectif familial partagé
+    famille_id = db.Column(db.Integer, db.ForeignKey(
+        'familles.id'))  # Objectif familial partagé
     titre = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text)
     montant_cible = db.Column(db.Float, nullable=False)
@@ -604,15 +667,19 @@ def valider_montant(montant_str):
 
 def calculer_statistiques(user_id, start_date=None, end_date=None):
     """Calcule les statistiques globales pour un utilisateur"""
-    query_depenses = db.session.query(func.sum(Depense.montant)).filter(Depense.user_id == user_id)
-    query_revenus = db.session.query(func.sum(Revenu.montant)).filter(Revenu.user_id == user_id)
+    query_depenses = db.session.query(
+        func.sum(Depense.montant)).filter(Depense.user_id == user_id)
+    query_revenus = db.session.query(
+        func.sum(Revenu.montant)).filter(Revenu.user_id == user_id)
 
     if start_date:
-        query_depenses = query_depenses.filter(Depense.date_created >= start_date)
+        query_depenses = query_depenses.filter(
+            Depense.date_created >= start_date)
         query_revenus = query_revenus.filter(Revenu.date_created >= start_date)
 
     if end_date:
-        query_depenses = query_depenses.filter(Depense.date_created <= end_date)
+        query_depenses = query_depenses.filter(
+            Depense.date_created <= end_date)
         query_revenus = query_revenus.filter(Revenu.date_created <= end_date)
 
     total_depenses = query_depenses.scalar() or 0.0
@@ -663,7 +730,8 @@ def verifier_alertes_budget(user_id):
             ).scalar() or 0.0
             categorie_nom = "Global"
 
-        pourcentage = (depenses_mois / budget.montant_limite * 100) if budget.montant_limite > 0 else 0
+        pourcentage = (depenses_mois / budget.montant_limite *
+                       100) if budget.montant_limite > 0 else 0
 
         if pourcentage >= budget.alerte_seuil:
             alertes.append({
@@ -687,7 +755,7 @@ def generer_graphique_camembert(user_id):
     # Ajouter les dépenses sans catégorie
     depenses_sans_cat = db.session.query(
         func.sum(Depense.montant).label('total')
-    ).filter(Depense.user_id == user_id, Depense.categorie_id == None).scalar() or 0
+    ).filter(Depense.user_id == user_id, Depense.categorie_id.is_(None)).scalar() or 0
 
     if not depenses and depenses_sans_cat == 0:
         return json.dumps({})
@@ -703,7 +771,8 @@ def generer_graphique_camembert(user_id):
         labels=labels,
         values=values,
         hole=0.3,
-        marker=dict(colors=['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'])
+        marker=dict(colors=['#FF6384', '#36A2EB', '#FFCE56',
+                    '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'])
     )])
 
     fig.update_layout(
@@ -735,7 +804,8 @@ def generer_graphique_mensuel(user_id):
     depenses_dict = {d.mois: float(d.total) for d in depenses_mensuelles}
     revenus_dict = {r.mois: float(r.total) for r in revenus_mensuels}
 
-    all_months = sorted(set(list(depenses_dict.keys()) + list(revenus_dict.keys())))
+    all_months = sorted(
+        set(list(depenses_dict.keys()) + list(revenus_dict.keys())))
 
     if not all_months:
         return json.dumps({})
@@ -744,8 +814,10 @@ def generer_graphique_mensuel(user_id):
     revenus_values = [revenus_dict.get(m, 0) for m in all_months]
 
     fig = go.Figure(data=[
-        go.Bar(name='Dépenses', x=all_months, y=depenses_values, marker_color='#FF6384'),
-        go.Bar(name='Revenus', x=all_months, y=revenus_values, marker_color='#36A2EB')
+        go.Bar(name='Dépenses', x=all_months,
+               y=depenses_values, marker_color='#FF6384'),
+        go.Bar(name='Revenus', x=all_months,
+               y=revenus_values, marker_color='#36A2EB')
     ])
 
     fig.update_layout(
@@ -792,9 +864,9 @@ def generer_graphique_tendances(user_id):
         moyenne_mobile = []
         for i in range(len(montants)):
             if i < 3:
-                moyenne_mobile.append(sum(montants[:i+1]) / (i+1))
+                moyenne_mobile.append(sum(montants[:i + 1]) / (i + 1))
             else:
-                moyenne_mobile.append(sum(montants[i-3:i+1]) / 4)
+                moyenne_mobile.append(sum(montants[i - 3:i + 1]) / 4)
 
         fig.add_trace(go.Scatter(
             x=semaines,
@@ -820,11 +892,11 @@ def generer_graphique_tendances(user_id):
 
 def get_dernier_hash_blockchain(user_id, type_transaction='depense'):
     """Récupère le dernier hash de la blockchain pour un utilisateur
-    
+
     Args:
         user_id: ID de l'utilisateur
         type_transaction: 'depense', 'revenu', ou 'transfert'
-    
+
     Returns:
         str: Hash de la dernière transaction ou None
     """
@@ -832,28 +904,28 @@ def get_dernier_hash_blockchain(user_id, type_transaction='depense'):
         derniere = Depense.query.filter_by(user_id=user_id)\
             .order_by(Depense.date_created.desc()).first()
         return derniere.blockchain_hash if derniere and derniere.blockchain_hash else None
-    
+
     elif type_transaction == 'revenu':
         dernier = Revenu.query.filter_by(user_id=user_id)\
             .order_by(Revenu.date_created.desc()).first()
         return dernier.blockchain_hash if dernier and dernier.blockchain_hash else None
-    
+
     elif type_transaction == 'transfert':
         dernier = TransfertCompte.query.filter_by(user_id=user_id)\
             .order_by(TransfertCompte.date_created.desc()).first()
         return dernier.hash_transaction if dernier and dernier.hash_transaction else None
-    
+
     return None
 
 
 def verifier_integrite_blockchain(user_id, type_transaction='depense'):
     """Vérifie l'intégrité de la blockchain pour un utilisateur
-    
+
     Returns:
         dict: {valide: bool, erreurs: list, total: int}
     """
     erreurs = []
-    
+
     if type_transaction == 'depense':
         transactions = Depense.query.filter_by(user_id=user_id)\
             .order_by(Depense.date_created.asc()).all()
@@ -861,19 +933,21 @@ def verifier_integrite_blockchain(user_id, type_transaction='depense'):
         transactions = Revenu.query.filter_by(user_id=user_id)\
             .order_by(Revenu.date_created.asc()).all()
     else:
-        return {'valide': False, 'erreurs': ['Type de transaction inconnu'], 'total': 0}
-    
+        return {'valide': False, 'erreurs': [
+            'Type de transaction inconnu'], 'total': 0}
+
     for i, transaction in enumerate(transactions):
         if not transaction.blockchain_hash:
             erreurs.append(f"Transaction {transaction.id} sans hash")
             continue
-        
+
         # Vérifier que prev_hash correspond au hash précédent
         if i > 0:
-            hash_precedent = transactions[i-1].blockchain_hash
+            hash_precedent = transactions[i - 1].blockchain_hash
             if transaction.prev_hash != hash_precedent:
-                erreurs.append(f"Transaction {transaction.id}: chaîne rompue (prev_hash invalide)")
-    
+                erreurs.append(
+                    f"Transaction {transaction.id}: chaîne rompue (prev_hash invalide)")
+
     return {
         'valide': len(erreurs) == 0,
         'erreurs': erreurs,
@@ -886,16 +960,16 @@ def verifier_integrite_blockchain(user_id, type_transaction='depense'):
 
 def envoyer_alerte_whatsapp(telephone, message):
     """Envoie une alerte WhatsApp via Twilio
-    
+
     Configuration requise:
     - TWILIO_ACCOUNT_SID
     - TWILIO_AUTH_TOKEN
     - TWILIO_WHATSAPP_FROM (format: whatsapp:+14155238886)
-    
+
     Args:
         telephone: Numéro format international (ex: +237670000000)
         message: Texte de l'alerte
-    
+
     Returns:
         dict: {success: bool, message: str, sid: str}
     """
@@ -903,15 +977,16 @@ def envoyer_alerte_whatsapp(telephone, message):
         # Vérifier variables d'environnement
         account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
         auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
-        whatsapp_from = os.environ.get('TWILIO_WHATSAPP_FROM', 'whatsapp:+14155238886')
-        
+        whatsapp_from = os.environ.get(
+            'TWILIO_WHATSAPP_FROM', 'whatsapp:+14155238886')
+
         if not account_sid or not auth_token:
             return {
                 'success': False,
                 'message': 'Configuration Twilio manquante (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)',
                 'sid': None
             }
-        
+
         # Import Twilio (optionnel)
         try:
             from twilio.rest import Client
@@ -921,23 +996,23 @@ def envoyer_alerte_whatsapp(telephone, message):
                 'message': 'Module twilio non installé. pip install twilio',
                 'sid': None
             }
-        
+
         # Créer client Twilio
         client = Client(account_sid, auth_token)
-        
+
         # Envoyer message WhatsApp
         message_obj = client.messages.create(
             from_=whatsapp_from,
             body=message,
             to=f'whatsapp:{telephone}'
         )
-        
+
         return {
             'success': True,
             'message': 'Alerte WhatsApp envoyée',
             'sid': message_obj.sid
         }
-        
+
     except Exception as e:
         return {
             'success': False,
@@ -948,39 +1023,40 @@ def envoyer_alerte_whatsapp(telephone, message):
 
 def verifier_depassement_budget(user_id):
     """Vérifie si un budget est dépassé et envoie alerte si configuré
-    
+
     Returns:
         list: Liste des alertes déclenchées
     """
     alertes = []
     mois_actuel = datetime.now().strftime('%Y-%m')
-    
+
     # Récupérer tous les budgets du mois actuel
     budgets = Budget.query.filter_by(user_id=user_id, mois=mois_actuel).all()
-    
+
     for budget in budgets:
         # Calculer dépenses pour ce budget
         query = Depense.query.filter_by(user_id=user_id)
-        
+
         if budget.categorie_id:
             query = query.filter_by(categorie_id=budget.categorie_id)
-        
+
         # Filtrer par mois
         query = query.filter(
             func.strftime('%Y-%m', Depense.date_created) == mois_actuel
         )
-        
+
         total_depense = db.session.query(func.sum(Depense.montant)).filter(
             Depense.id.in_([d.id for d in query.all()])
         ).scalar() or 0
-        
+
         # Calculer pourcentage
-        pourcentage = (total_depense / budget.montant_limite * 100) if budget.montant_limite > 0 else 0
-        
+        pourcentage = (total_depense / budget.montant_limite *
+                       100) if budget.montant_limite > 0 else 0
+
         # Vérifier si seuil dépassé
         if pourcentage >= budget.alerte_seuil:
             categorie_nom = budget.categorie.nom if budget.categorie_id else "Général"
-            
+
             message = f"""
 🚨 *Alerte Budget NyangaBudget*
 
@@ -991,25 +1067,28 @@ Pourcentage: {pourcentage:.1f}%
 
 ⚠️ Vous avez dépassé le seuil de {budget.alerte_seuil}%!
             """.strip()
-            
+
             # Créer notification interne
             try:
                 notification = Notification(
                     user_id=user_id,
                     type='alerte_budget',
                     titre=f'⚠️ Budget {categorie_nom} dépassé',
-                    message=f'{pourcentage:.1f}% du budget atteint ({total_depense:,.0f}/{budget.montant_limite:,.0f} FCFA)',
+                    message=f'{
+                        pourcentage:.1f}% du budget atteint ({
+                        total_depense:,.0f}/{
+                        budget.montant_limite:,.0f} FCFA)',
                     priorite='haute'
                 )
                 db.session.add(notification)
                 db.session.commit()
-            except:
+            except Exception:
                 pass
-            
+
             # Envoyer WhatsApp si configuré
-            user = User.query.get(user_id)
-            telephone = os.environ.get(f'USER_{user_id}_PHONE')  # Format: USER_1_PHONE=+237670000000
-            
+            # Format: USER_1_PHONE=+237670000000
+            telephone = os.environ.get(f'USER_{user_id}_PHONE')
+
             if telephone:
                 resultat = envoyer_alerte_whatsapp(telephone, message)
                 alertes.append({
@@ -1025,30 +1104,31 @@ Pourcentage: {pourcentage:.1f}%
                     'whatsapp_sent': False,
                     'whatsapp_message': 'Numéro téléphone non configuré'
                 })
-    
+
     return alertes
 
 
-# ==================== INTELLIGENCE ARTIFICIELLE & PRÉDICTION ====================
+# ==================== INTELLIGENCE ARTIFICIELLE & PRÉDICTION ============
 
 def predire_depenses_futures(user_id, nb_mois=3):
     """Prédire les dépenses des prochains mois avec Machine Learning (Linear Regression)
-    
+
     Args:
         user_id: ID de l'utilisateur
         nb_mois: Nombre de mois à prédire (par défaut 3)
-    
+
     Returns:
         dict: predictions, historique, tendance, confiance
     """
     try:
         from sklearn.linear_model import LinearRegression
         import numpy as np
-        
-        # Récupérer l'historique des dépenses mensuelles (12 derniers mois minimum)
+
+        # Récupérer l'historique des dépenses mensuelles (12 derniers mois
+        # minimum)
         end_date = datetime.now()
         start_date = end_date - timedelta(days=365)  # 12 mois
-        
+
         depenses_mensuelles = db.session.query(
             func.strftime('%Y-%m', Depense.date_created).label('mois'),
             func.sum(Depense.montant).label('total')
@@ -1056,36 +1136,39 @@ def predire_depenses_futures(user_id, nb_mois=3):
             Depense.user_id == user_id,
             Depense.date_created >= start_date
         ).group_by('mois').order_by('mois').all()
-        
+
         if len(depenses_mensuelles) < 3:
             return {
                 'success': False,
                 'message': 'Historique insuffisant (minimum 3 mois requis)',
                 'predictions': []
             }
-        
+
         # Préparer les données pour le modèle
         X = np.array([[i] for i in range(len(depenses_mensuelles))])
         y = np.array([float(d.total) for d in depenses_mensuelles])
-        
+
         # Créer et entraîner le modèle
         model = LinearRegression()
         model.fit(X, y)
-        
+
         # Score de confiance (R²)
         confiance = max(0, min(100, model.score(X, y) * 100))
-        
+
         # Générer les prédictions
         predictions = []
         for i in range(nb_mois):
             montant_predit = model.predict([[len(depenses_mensuelles) + i]])[0]
-            mois_futur = (end_date + timedelta(days=30 * (i + 1))).strftime('%Y-%m')
-            predictions.append({'mois': mois_futur, 'montant_predit': round(montant_predit, 2)})
-        
+            mois_futur = (end_date + timedelta(days=30 * (i + 1))
+                          ).strftime('%Y-%m')
+            predictions.append(
+                {'mois': mois_futur, 'montant_predit': round(montant_predit, 2)})
+
         # Déterminer la tendance
         slope = model.coef_[0]
-        tendance = 'hausse' if slope > 1000 else ('baisse' if slope < -1000 else 'stable')
-        
+        tendance = 'hausse' if slope > 1000 else (
+            'baisse' if slope < -1000 else 'stable')
+
         return {
             'success': True,
             'predictions': predictions,
@@ -1093,9 +1176,10 @@ def predire_depenses_futures(user_id, nb_mois=3):
             'tendance': tendance,
             'confiance': round(confiance, 1)
         }
-    
+
     except Exception as e:
-        return {'success': False, 'message': f'Erreur: {str(e)}', 'predictions': []}
+        return {'success': False,
+                'message': f'Erreur: {str(e)}', 'predictions': []}
 
 
 def generer_csv(user_id):
@@ -1127,7 +1211,8 @@ def generer_csv(user_id):
 def generer_pdf(user_id):
     """Génère un rapport PDF avec résumé et top 10 des dépenses"""
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm)
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            topMargin=2 * cm, bottomMargin=2 * cm)
     elements = []
     styles = getSampleStyleSheet()
 
@@ -1141,11 +1226,12 @@ def generer_pdf(user_id):
     )
 
     elements.append(Paragraph('NyangaBudget - Rapport Financier', title_style))
-    elements.append(Spacer(1, 0.5*cm))
+    elements.append(Spacer(1, 0.5 * cm))
 
     date_rapport = datetime.now().strftime('%d/%m/%Y a %H:%M')
-    elements.append(Paragraph(f'<b>Date du rapport:</b> {date_rapport}', styles['Normal']))
-    elements.append(Spacer(1, 0.5*cm))
+    elements.append(
+        Paragraph(f'<b>Date du rapport:</b> {date_rapport}', styles['Normal']))
+    elements.append(Spacer(1, 0.5 * cm))
 
     stats = calculer_statistiques(user_id)
 
@@ -1158,7 +1244,7 @@ def generer_pdf(user_id):
         ['Nombre de revenus', str(stats['nb_revenus'])]
     ]
 
-    table_stats = Table(data_stats, colWidths=[8*cm, 8*cm])
+    table_stats = Table(data_stats, colWidths=[8 * cm, 8 * cm])
     table_stats.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3498DB')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -1174,12 +1260,14 @@ def generer_pdf(user_id):
     ]))
 
     elements.append(table_stats)
-    elements.append(Spacer(1, 1*cm))
+    elements.append(Spacer(1, 1 * cm))
 
-    elements.append(Paragraph('<b>Top 10 des depenses les plus importantes</b>', styles['Heading2']))
-    elements.append(Spacer(1, 0.3*cm))
+    elements.append(Paragraph(
+        '<b>Top 10 des depenses les plus importantes</b>', styles['Heading2']))
+    elements.append(Spacer(1, 0.3 * cm))
 
-    top_depenses = Depense.query.filter_by(user_id=user_id).order_by(Depense.montant.desc()).limit(10).all()
+    top_depenses = Depense.query.filter_by(user_id=user_id).order_by(
+        Depense.montant.desc()).limit(10).all()
 
     if top_depenses:
         data_depenses = [['#', 'Description', 'Categorie', 'Montant', 'Date']]
@@ -1193,7 +1281,8 @@ def generer_pdf(user_id):
                 d.date_created.strftime('%d/%m/%Y')
             ])
 
-        table_depenses = Table(data_depenses, colWidths=[1*cm, 6*cm, 3*cm, 3*cm, 2.5*cm])
+        table_depenses = Table(data_depenses, colWidths=[
+                               1 * cm, 6 * cm, 3 * cm, 3 * cm, 2.5 * cm])
         table_depenses.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E74C3C')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -1205,15 +1294,18 @@ def generer_pdf(user_id):
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 1), (-1, -1), 8),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey])
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1),
+             [colors.white, colors.lightgrey])
         ]))
 
         elements.append(table_depenses)
     else:
-        elements.append(Paragraph('Aucune depense enregistree.', styles['Normal']))
+        elements.append(
+            Paragraph('Aucune depense enregistree.', styles['Normal']))
 
-    elements.append(Spacer(1, 1*cm))
-    elements.append(Paragraph('<i>Propulse par JoYed\'S - NyangaBudget Cameroun</i>', styles['Normal']))
+    elements.append(Spacer(1, 1 * cm))
+    elements.append(Paragraph(
+        '<i>Propulse par JoYed\'S - NyangaBudget Cameroun</i>', styles['Normal']))
 
     doc.build(elements)
     buffer.seek(0)
@@ -1222,7 +1314,7 @@ def generer_pdf(user_id):
 
 def creer_categories_defaut(user_id):
     """Crée des catégories par défaut pour un nouvel utilisateur
-    
+
     Note: Cette fonction est appelée par init_db() pour l'admin.
     Pour les inscriptions normales, les catégories sont créées directement dans register().
     """
@@ -1244,16 +1336,15 @@ def creer_categories_defaut(user_id):
     # Note: Pas de commit ici, c'est la fonction appelante qui fait le commit
 
 
-
-# ==================== FONCTIONS CRYPTAGE (COFFRE-FORT & HÉRITAGE) ====================
+# ==================== FONCTIONS CRYPTAGE (COFFRE-FORT & HÉRITAGE) =======
 
 def generer_cle_fernet(password, user_id=None):
     """Génère une clé Fernet à partir d'un mot de passe avec salt unique par utilisateur
-    
+
     Args:
         password: Mot de passe utilisateur
         user_id: ID de l'utilisateur (optionnel). Si fourni, génère un salt unique.
-    
+
     Returns:
         Clé Fernet dérivée du mot de passe
     """
@@ -1265,7 +1356,7 @@ def generer_cle_fernet(password, user_id=None):
     else:
         # Fallback pour compatibilité (anciens documents)
         salt = b'nyanga_salt_2025'
-    
+
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
@@ -1279,7 +1370,7 @@ def generer_cle_fernet(password, user_id=None):
 
 def crypter_texte(texte, password=None, user_id=None):
     """Crypte un texte avec Fernet
-    
+
     Args:
         texte: Texte à crypter
         password: Mot de passe personnalisé (optionnel)
@@ -1297,7 +1388,7 @@ def crypter_texte(texte, password=None, user_id=None):
 
 def decrypter_texte(texte_crypte, password=None, user_id=None):
     """Décrypte un texte avec Fernet
-    
+
     Args:
         texte_crypte: Texte crypté à déchiffrer
         password: Mot de passe personnalisé (optionnel)
@@ -1313,7 +1404,7 @@ def decrypter_texte(texte_crypte, password=None, user_id=None):
         texte_decode = base64.urlsafe_b64decode(texte_crypte.encode())
         texte_clair = f.decrypt(texte_decode).decode()
         return texte_clair
-    except:
+    except Exception:
         return None
 
 
@@ -1358,11 +1449,11 @@ def decrypter_fichier(fichier_crypte_path, password=None):
             file.write(decrypted_data)
 
         return fichier_path
-    except:
+    except Exception:
         return None
 
 
-# ==================== IA PRÉDICTIVE & SCORE SANTÉ FINANCIÈRE ====================
+# ==================== IA PRÉDICTIVE & SCORE SANTÉ FINANCIÈRE ============
 
 def calculer_score_sante_financiere(user_id):
     """Calcule le score de santé financière (0-100) avec IA basique"""
@@ -1392,7 +1483,8 @@ def calculer_score_sante_financiere(user_id):
         score += 15
         facteurs_positifs.append(f"{len(comptes)} comptes bancaires")
     else:
-        suggestions.append("Créez plusieurs comptes pour mieux gérer votre argent")
+        suggestions.append(
+            "Créez plusieurs comptes pour mieux gérer votre argent")
 
     # Facteur 3: Respect des budgets (+20 points)
     if budgets:
@@ -1411,7 +1503,8 @@ def calculer_score_sante_financiere(user_id):
             facteurs_positifs.append("Tous les budgets respectés")
         elif budgets_respectes > 0:
             score += 10
-            facteurs_positifs.append(f"{budgets_respectes}/{len(budgets)} budgets respectés")
+            facteurs_positifs.append(
+                f"{budgets_respectes}/{len(budgets)} budgets respectés")
         else:
             score -= 10
             facteurs_negatifs.append("Budgets dépassés")
@@ -1434,14 +1527,15 @@ def calculer_score_sante_financiere(user_id):
         ratio = (stats['total_depenses'] / stats['total_revenus']) * 100
         if ratio < 50:
             score += 10
-            facteurs_positifs.append("Excellente gestion (dépenses < 50% revenus)")
+            facteurs_positifs.append(
+                "Excellente gestion (dépenses < 50% revenus)")
         elif ratio < 80:
             score += 5
             facteurs_positifs.append("Bonne gestion (dépenses < 80% revenus)")
         else:
             score -= 10
             facteurs_negatifs.append("Dépenses trop élevées")
-            suggestions.append(f"Réduisez vos dépenses de {ratio-70:.0f}%")
+            suggestions.append(f"Réduisez vos dépenses de {ratio - 70:.0f}%")
 
     # Limiter le score entre 0 et 100
     score = max(0, min(100, score))
@@ -1467,7 +1561,8 @@ def calculer_score_sante_financiere(user_id):
     }
 
 
-def creer_notification(user_id, type_notif, titre, message, lien=None, priorite='normale'):
+def creer_notification(user_id, type_notif, titre,
+                       message, lien=None, priorite='normale'):
     """Crée une notification pour un utilisateur"""
     notif = Notification(
         user_id=user_id,
@@ -1582,7 +1677,7 @@ def register():
             user.set_password(password)
             db.session.add(user)
             db.session.flush()  # Obtenir l'ID sans commit
-            
+
             print(f"[INFO] Utilisateur créé: {user.email} (ID: {user.id})")
 
             # Créer catégories par défaut
@@ -1600,20 +1695,23 @@ def register():
             for cat_data in categories_defaut:
                 categorie = Categorie(user_id=user.id, **cat_data)
                 db.session.add(categorie)
-            
+
             # Commit unique pour tout
             db.session.commit()
             print(f"[OK] Inscription terminée: {user.email}")
 
-            flash('Compte créé avec succès! Vous pouvez maintenant vous connecter.', 'success')
+            flash(
+                'Compte créé avec succès! Vous pouvez maintenant vous connecter.', 'success')
             return redirect(url_for('login'))
-            
+
         except Exception as e:
             db.session.rollback()
             print(f"[ERREUR] Inscription échouée: {str(e)}")
             import traceback
             traceback.print_exc()
-            flash(f'Erreur lors de la création du compte. Veuillez réessayer.', 'danger')
+            flash(
+                'Erreur lors de la création du compte. Veuillez réessayer.',
+                'danger')
             return redirect(url_for('register'))
 
     return render_template('register.html')
@@ -1637,7 +1735,7 @@ def index():
     # Pagination
     page = request.args.get('page', 1, type=int)
     per_page = 20  # 20 dépenses par page
-    
+
     # Recherche et filtrage
     search = request.args.get('search', '').strip()
     categorie_filter = request.args.get('categorie', '')
@@ -1651,7 +1749,7 @@ def index():
 
     if categorie_filter:
         if categorie_filter == 'none':
-            query = query.filter(Depense.categorie_id == None)
+            query = query.filter(Depense.categorie_id.is_(None))
         else:
             query = query.filter(Depense.categorie_id == int(categorie_filter))
 
@@ -1659,7 +1757,7 @@ def index():
         try:
             date_debut_obj = datetime.strptime(date_debut, '%Y-%m-%d')
             query = query.filter(Depense.date_created >= date_debut_obj)
-        except:
+        except ValueError:
             pass
 
     if date_fin:
@@ -1667,30 +1765,31 @@ def index():
             date_fin_obj = datetime.strptime(date_fin, '%Y-%m-%d')
             date_fin_obj = date_fin_obj.replace(hour=23, minute=59, second=59)
             query = query.filter(Depense.date_created <= date_fin_obj)
-        except:
+        except ValueError:
             pass
 
     # Pagination
     depenses_pagination = query.order_by(Depense.date_created.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
-    
-    categories = Categorie.query.filter_by(user_id=current_user.id).order_by(Categorie.nom).all()
+
+    categories = Categorie.query.filter_by(
+        user_id=current_user.id).order_by(Categorie.nom).all()
     stats = calculer_statistiques(current_user.id)
 
     # Vérifier alertes budget
     alertes = verifier_alertes_budget(current_user.id)
 
     return render_template('index.html',
-                         depenses=depenses_pagination.items,
-                         pagination=depenses_pagination,
-                         stats=stats,
-                         categories=categories,
-                         alertes=alertes,
-                         search=search,
-                         categorie_filter=categorie_filter,
-                         date_debut=date_debut,
-                         date_fin=date_fin)
+                           depenses=depenses_pagination.items,
+                           pagination=depenses_pagination,
+                           stats=stats,
+                           categories=categories,
+                           alertes=alertes,
+                           search=search,
+                           categorie_filter=categorie_filter,
+                           date_debut=date_debut,
+                           date_fin=date_fin)
 
 
 @app.route('/add', methods=['POST'])
@@ -1719,11 +1818,11 @@ def add_depense():
         )
         db.session.add(nouvelle_depense)
         db.session.flush()  # Obtenir l'ID avant commit
-        
+
         # Générer hash blockchain avec chaînage (TEMPORAIREMENT DESACTIVE)
         # prev_hash = get_dernier_hash_blockchain(current_user.id, 'depense')
         # nouvelle_depense.generer_blockchain_hash(prev_hash)
-        
+
         db.session.commit()
         flash(f'Dépense "{nom}" ajoutée avec succès!', 'success')
     except Exception as e:
@@ -1738,7 +1837,8 @@ def add_depense():
 def delete_depense(id):
     """Supprime une dépense"""
     try:
-        depense = Depense.query.filter_by(id=id, user_id=current_user.id).first_or_404()
+        depense = Depense.query.filter_by(
+            id=id, user_id=current_user.id).first_or_404()
         nom = depense.nom
         db.session.delete(depense)
         db.session.commit()
@@ -1761,34 +1861,36 @@ def scan_recu():
         if 'receipt_file' not in request.files:
             flash('Aucun fichier sélectionné', 'danger')
             return redirect(url_for('scan_recu'))
-        
+
         file = request.files['receipt_file']
-        
+
         # Validation du fichier
         is_valid, error_msg = validate_file_upload(file)
         if not is_valid:
             flash(error_msg, 'danger')
             return redirect(url_for('scan_recu'))
-        
+
         # Sauvegarder le reçu
         filename = secure_filename(file.filename)
-        unique_filename = f"{current_user.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
+        unique_filename = f"{
+            current_user.id}_{
+            datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
         filepath = os.path.join(app.config['RECEIPTS_FOLDER'], unique_filename)
         file.save(filepath)
-        
+
         # Extraction manuelle assistée (formulaire pré-rempli avec suggestions)
         # L'utilisateur remplit les détails après upload
         montant = request.form.get('montant', '').strip()
         nom = request.form.get('nom', '').strip()
         categorie_id = request.form.get('categorie_id', '').strip()
-        
+
         if montant and nom:
             # Créer la dépense
             montant_float, erreur = valider_montant(montant)
             if erreur:
                 flash(erreur, 'danger')
                 return redirect(url_for('scan_recu'))
-            
+
             try:
                 nouvelle_depense = Depense(
                     nom=f"📄 {nom}",  # Icône pour indiquer reçu scanné
@@ -1798,13 +1900,14 @@ def scan_recu():
                 )
                 db.session.add(nouvelle_depense)
                 db.session.flush()
-                
+
                 # Générer hash blockchain (TEMPORAIREMENT DESACTIVE)
                 # prev_hash = get_dernier_hash_blockchain(current_user.id, 'depense')
                 # nouvelle_depense.generer_blockchain_hash(prev_hash)
-                
+
                 db.session.commit()
-                flash(f'✅ Dépense créée depuis reçu scanné: {nom} - {montant_float} FCFA', 'success')
+                flash(
+                    f'✅ Dépense créée depuis reçu scanné: {nom} - {montant_float} FCFA', 'success')
                 return redirect(url_for('index'))
             except Exception as e:
                 db.session.rollback()
@@ -1813,31 +1916,33 @@ def scan_recu():
                 if os.path.exists(filepath):
                     os.remove(filepath)
         else:
-            flash(f'📷 Reçu sauvegardé! Remplissez les détails ci-dessous.', 'info')
+            flash('📷 Reçu sauvegardé! Remplissez les détails ci-dessous.', 'info')
             # Retourner au formulaire avec le fichier uploadé
             return render_template('scan_recu.html',
-                                   categories=Categorie.query.filter_by(user_id=current_user.id).all(),
+                                   categories=Categorie.query.filter_by(
+                                       user_id=current_user.id).all(),
                                    uploaded_file=unique_filename,
                                    depenses_avec_recu=0,
                                    montant_total=0,
                                    pourcentage=0)
-    
+
     # Statistiques reçus
     total_depenses = Depense.query.filter_by(user_id=current_user.id).count()
     depenses_avec_recu = Depense.query.filter(
         Depense.user_id == current_user.id,
         Depense.nom.like('📄%')
     ).count()
-    
+
     montant_total = db.session.query(func.sum(Depense.montant)).filter(
         Depense.user_id == current_user.id,
         Depense.nom.like('📄%')
     ).scalar() or 0
-    
+
     pourcentage = round((depenses_avec_recu / max(total_depenses, 1)) * 100, 1)
-    
+
     return render_template('scan_recu.html',
-                           categories=Categorie.query.filter_by(user_id=current_user.id).all(),
+                           categories=Categorie.query.filter_by(
+                               user_id=current_user.id).all(),
                            depenses_avec_recu=depenses_avec_recu,
                            montant_total=f"{montant_total:,.0f}",
                            pourcentage=pourcentage)
@@ -1861,7 +1966,7 @@ def revenues():
         try:
             date_debut_obj = datetime.strptime(date_debut, '%Y-%m-%d')
             query = query.filter(Revenu.date_created >= date_debut_obj)
-        except:
+        except ValueError:
             pass
 
     if date_fin:
@@ -1869,18 +1974,18 @@ def revenues():
             date_fin_obj = datetime.strptime(date_fin, '%Y-%m-%d')
             date_fin_obj = date_fin_obj.replace(hour=23, minute=59, second=59)
             query = query.filter(Revenu.date_created <= date_fin_obj)
-        except:
+        except ValueError:
             pass
 
     revenus = query.order_by(Revenu.date_created.desc()).all()
     stats = calculer_statistiques(current_user.id)
 
     return render_template('revenues.html',
-                         revenus=revenus,
-                         stats=stats,
-                         search=search,
-                         date_debut=date_debut,
-                         date_fin=date_fin)
+                           revenus=revenus,
+                           stats=stats,
+                           search=search,
+                           date_debut=date_debut,
+                           date_fin=date_fin)
 
 
 @app.route('/add_revenue', methods=['POST'])
@@ -1900,14 +2005,15 @@ def add_revenue():
         return redirect(url_for('revenues'))
 
     try:
-        nouveau_revenu = Revenu(source=source, montant=montant, user_id=current_user.id)
+        nouveau_revenu = Revenu(
+            source=source, montant=montant, user_id=current_user.id)
         db.session.add(nouveau_revenu)
         db.session.flush()  # Obtenir l'ID avant commit
-        
+
         # Générer hash blockchain avec chaînage (TEMPORAIREMENT DESACTIVE)
         # prev_hash = get_dernier_hash_blockchain(current_user.id, 'revenu')
         # nouveau_revenu.generer_blockchain_hash(prev_hash)
-        
+
         db.session.commit()
         flash(f'Revenu "{source}" ajouté avec succès!', 'success')
     except Exception as e:
@@ -1922,7 +2028,8 @@ def add_revenue():
 def delete_revenu(id):
     """Supprime un revenu"""
     try:
-        revenu = Revenu.query.filter_by(id=id, user_id=current_user.id).first_or_404()
+        revenu = Revenu.query.filter_by(
+            id=id, user_id=current_user.id).first_or_404()
         source = revenu.source
         db.session.delete(revenu)
         db.session.commit()
@@ -1963,12 +2070,14 @@ def dashboard():
 @login_required
 def categories():
     """Page de gestion des catégories"""
-    categories = Categorie.query.filter_by(user_id=current_user.id).order_by(Categorie.nom).all()
+    categories = Categorie.query.filter_by(
+        user_id=current_user.id).order_by(Categorie.nom).all()
 
     # Calculer nombre de dépenses par catégorie
     categories_stats = []
     for cat in categories:
-        nb_depenses = Depense.query.filter_by(user_id=current_user.id, categorie_id=cat.id).count()
+        nb_depenses = Depense.query.filter_by(
+            user_id=current_user.id, categorie_id=cat.id).count()
         total = db.session.query(func.sum(Depense.montant)).filter_by(
             user_id=current_user.id,
             categorie_id=cat.id
@@ -1979,7 +2088,8 @@ def categories():
             'total': total
         })
 
-    return render_template('categories.html', categories_stats=categories_stats)
+    return render_template(
+        'categories.html', categories_stats=categories_stats)
 
 
 @app.route('/add_categorie', methods=['POST'])
@@ -2016,7 +2126,8 @@ def add_categorie():
 def delete_categorie(id):
     """Supprime une catégorie"""
     try:
-        categorie = Categorie.query.filter_by(id=id, user_id=current_user.id).first_or_404()
+        categorie = Categorie.query.filter_by(
+            id=id, user_id=current_user.id).first_or_404()
         nom = categorie.nom
 
         # Détacher les dépenses liées
@@ -2039,8 +2150,10 @@ def delete_categorie(id):
 def budgets():
     """Page de gestion des budgets"""
     mois_actuel = datetime.now().strftime('%Y-%m')
-    budgets = Budget.query.filter_by(user_id=current_user.id).order_by(Budget.mois.desc()).all()
-    categories = Categorie.query.filter_by(user_id=current_user.id).order_by(Categorie.nom).all()
+    budgets = Budget.query.filter_by(
+        user_id=current_user.id).order_by(Budget.mois.desc()).all()
+    categories = Categorie.query.filter_by(
+        user_id=current_user.id).order_by(Categorie.nom).all()
 
     # Calculer progression pour chaque budget
     budgets_stats = []
@@ -2057,7 +2170,8 @@ def budgets():
                 func.strftime('%Y-%m', Depense.date_created) == budget.mois
             ).scalar() or 0
 
-        pourcentage = (depenses_periode / budget.montant_limite * 100) if budget.montant_limite > 0 else 0
+        pourcentage = (depenses_periode / budget.montant_limite *
+                       100) if budget.montant_limite > 0 else 0
 
         budgets_stats.append({
             'budget': budget,
@@ -2068,9 +2182,9 @@ def budgets():
         })
 
     return render_template('budgets.html',
-                         budgets_stats=budgets_stats,
-                         categories=categories,
-                         mois_actuel=mois_actuel)
+                           budgets_stats=budgets_stats,
+                           categories=categories,
+                           mois_actuel=mois_actuel)
 
 
 @app.route('/add_budget', methods=['POST'])
@@ -2100,7 +2214,9 @@ def add_budget():
         ).first()
 
         if existing:
-            flash('Un budget existe déjà pour cette période et catégorie', 'warning')
+            flash(
+                'Un budget existe déjà pour cette période et catégorie',
+                'warning')
             return redirect(url_for('budgets'))
 
         nouveau_budget = Budget(
@@ -2125,7 +2241,8 @@ def add_budget():
 def delete_budget(id):
     """Supprime un budget"""
     try:
-        budget = Budget.query.filter_by(id=id, user_id=current_user.id).first_or_404()
+        budget = Budget.query.filter_by(
+            id=id, user_id=current_user.id).first_or_404()
         db.session.delete(budget)
         db.session.commit()
         flash('Budget supprimé avec succès!', 'success')
@@ -2147,14 +2264,16 @@ def export_csv():
 
         output = StringIO()
         if transactions:
-            fieldnames = ['Date', 'Type', 'Description', 'Catégorie', 'Montant']
+            fieldnames = ['Date', 'Type',
+                          'Description', 'Catégorie', 'Montant']
             writer = csv.DictWriter(output, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(transactions)
         else:
             output.write('Date,Type,Description,Categorie,Montant\n')
 
-        filename = f'nyanga_transactions_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        filename = f'nyanga_transactions_{
+            datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
         csv_bytes = '\ufeff' + output.getvalue()
 
         response = make_response(csv_bytes)
@@ -2173,7 +2292,8 @@ def export_pdf():
     """Export PDF du rapport financier"""
     try:
         pdf_buffer = generer_pdf(current_user.id)
-        filename = f'nyanga_rapport_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
+        filename = f'nyanga_rapport_{
+            datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
 
         return send_file(
             pdf_buffer,
@@ -2201,7 +2321,8 @@ def api_stats():
 def api_depenses():
     """API: Liste et création de dépenses"""
     if request.method == 'GET':
-        depenses = Depense.query.filter_by(user_id=current_user.id).order_by(Depense.date_created.desc()).limit(50).all()
+        depenses = Depense.query.filter_by(user_id=current_user.id).order_by(
+            Depense.date_created.desc()).limit(50).all()
         return jsonify([{
             'id': d.id,
             'nom': d.nom,
@@ -2242,7 +2363,8 @@ def api_depenses():
 def api_revenus():
     """API: Liste et création de revenus"""
     if request.method == 'GET':
-        revenus = Revenu.query.filter_by(user_id=current_user.id).order_by(Revenu.date_created.desc()).limit(50).all()
+        revenus = Revenu.query.filter_by(user_id=current_user.id).order_by(
+            Revenu.date_created.desc()).limit(50).all()
         return jsonify([{
             'id': r.id,
             'source': r.source,
@@ -2303,15 +2425,18 @@ def api_budgets_alertes():
 @login_required
 def comptes():
     """Page de gestion des comptes bancaires"""
-    comptes = CompteBancaire.query.filter_by(user_id=current_user.id).order_by(CompteBancaire.est_principal.desc()).all()
+    comptes = CompteBancaire.query.filter_by(user_id=current_user.id).order_by(
+        CompteBancaire.est_principal.desc()).all()
 
     # Calculer solde total
     solde_total = sum(c.solde_actuel for c in comptes)
 
     # Récupérer derniers transferts
-    transferts = TransfertCompte.query.filter_by(user_id=current_user.id).order_by(TransfertCompte.date_created.desc()).limit(10).all()
+    transferts = TransfertCompte.query.filter_by(user_id=current_user.id).order_by(
+        TransfertCompte.date_created.desc()).limit(10).all()
 
-    return render_template('comptes.html', comptes=comptes, solde_total=solde_total, transferts=transferts)
+    return render_template('comptes.html', comptes=comptes,
+                           solde_total=solde_total, transferts=transferts)
 
 
 @app.route('/add_compte', methods=['POST'])
@@ -2329,7 +2454,8 @@ def add_compte():
         flash('Le nom du compte est obligatoire', 'danger')
         return redirect(url_for('comptes'))
 
-    solde_initial, erreur = valider_montant(solde_initial_str) if solde_initial_str != '0' else (0, None)
+    solde_initial, erreur = valider_montant(
+        solde_initial_str) if solde_initial_str != '0' else (0, None)
     if erreur:
         flash(erreur, 'danger')
         return redirect(url_for('comptes'))
@@ -2351,7 +2477,7 @@ def add_compte():
 
         # Notification
         creer_notification(current_user.id, 'compte', 'Nouveau compte créé',
-                          f'Le compte "{nom}" a été ajouté avec succès.', url_for('comptes'))
+                           f'Le compte "{nom}" a été ajouté avec succès.', url_for('comptes'))
     except Exception as e:
         db.session.rollback()
         flash(f'Erreur lors de la création: {str(e)}', 'danger')
@@ -2382,8 +2508,10 @@ def transfert_compte():
         return redirect(url_for('comptes'))
 
     try:
-        compte_source = CompteBancaire.query.filter_by(id=int(compte_source_id), user_id=current_user.id).first()
-        compte_destination = CompteBancaire.query.filter_by(id=int(compte_destination_id), user_id=current_user.id).first()
+        compte_source = CompteBancaire.query.filter_by(
+            id=int(compte_source_id), user_id=current_user.id).first()
+        compte_destination = CompteBancaire.query.filter_by(
+            id=int(compte_destination_id), user_id=current_user.id).first()
 
         if not compte_source or not compte_destination:
             flash('Compte invalide', 'danger')
@@ -2412,12 +2540,16 @@ def transfert_compte():
         transfert.generer_hash()
 
         db.session.commit()
-        flash(f'Transfert de {montant:,.0f} FCFA effectué avec succès!', 'success')
+        flash(
+            f'Transfert de {montant:,.0f} FCFA effectué avec succès!', 'success')
 
         # Notification
         creer_notification(current_user.id, 'compte', 'Transfert effectué',
-                          f'{montant:,.0f} FCFA transféré de {compte_source.nom} vers {compte_destination.nom}',
-                          url_for('comptes'), 'haute')
+                           f'{
+                               montant:,.0f} FCFA transféré de {
+                               compte_source.nom} vers {
+                               compte_destination.nom}',
+                           url_for('comptes'), 'haute')
     except Exception as e:
         db.session.rollback()
         flash(f'Erreur lors du transfert: {str(e)}', 'danger')
@@ -2430,7 +2562,8 @@ def transfert_compte():
 def delete_compte(id):
     """Supprime un compte bancaire"""
     try:
-        compte = CompteBancaire.query.filter_by(id=id, user_id=current_user.id).first_or_404()
+        compte = CompteBancaire.query.filter_by(
+            id=id, user_id=current_user.id).first_or_404()
         nom = compte.nom
         db.session.delete(compte)
         db.session.commit()
@@ -2448,7 +2581,8 @@ def delete_compte(id):
 @login_required
 def coffre_fort():
     """Page du coffre-fort numérique"""
-    documents = CoffreFort.query.filter_by(user_id=current_user.id).order_by(CoffreFort.est_critique.desc(), CoffreFort.date_modified.desc()).all()
+    documents = CoffreFort.query.filter_by(user_id=current_user.id).order_by(
+        CoffreFort.est_critique.desc(), CoffreFort.date_modified.desc()).all()
     return render_template('coffre_fort.html', documents=documents)
 
 
@@ -2483,7 +2617,8 @@ def add_coffre():
             filename = secure_filename(fichier.filename)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             unique_filename = f"{current_user.id}_{timestamp}_{filename}"
-            fichier_path = os.path.join(app.config['VAULT_FOLDER'], unique_filename)
+            fichier_path = os.path.join(
+                app.config['VAULT_FOLDER'], unique_filename)
 
             # Sauvegarder temporairement
             fichier.save(fichier_path)
@@ -2494,11 +2629,12 @@ def add_coffre():
 
         db.session.add(nouveau_doc)
         db.session.commit()
-        flash(f'Document "{titre}" ajouté au coffre-fort avec cryptage AES-256!', 'success')
+        flash(
+            f'Document "{titre}" ajouté au coffre-fort avec cryptage AES-256!', 'success')
 
         # Notification
         creer_notification(current_user.id, 'coffre', 'Document sécurisé',
-                          f'"{titre}" ajouté au coffre-fort crypté', url_for('coffre_fort'))
+                           f'"{titre}" ajouté au coffre-fort crypté', url_for('coffre_fort'))
     except Exception as e:
         db.session.rollback()
         flash(f'Erreur lors de l\'ajout: {str(e)}', 'danger')
@@ -2510,7 +2646,8 @@ def add_coffre():
 @login_required
 def view_coffre(id):
     """Affiche un document du coffre-fort (décrypté)"""
-    document = CoffreFort.query.filter_by(id=id, user_id=current_user.id).first_or_404()
+    document = CoffreFort.query.filter_by(
+        id=id, user_id=current_user.id).first_or_404()
 
     contenu_decrypte = None
     if document.contenu_crypte:
@@ -2531,11 +2668,13 @@ def view_coffre(id):
 def delete_coffre(id):
     """Supprime un document du coffre-fort"""
     try:
-        document = CoffreFort.query.filter_by(id=id, user_id=current_user.id).first_or_404()
+        document = CoffreFort.query.filter_by(
+            id=id, user_id=current_user.id).first_or_404()
 
         # Supprimer le fichier crypté si existe
         if document.fichier_crypte:
-            fichier_path = os.path.join(app.config['VAULT_FOLDER'], document.fichier_crypte)
+            fichier_path = os.path.join(
+                app.config['VAULT_FOLDER'], document.fichier_crypte)
             if os.path.exists(fichier_path):
                 os.remove(fichier_path)
 
@@ -2556,18 +2695,22 @@ def delete_coffre(id):
 @login_required
 def heritage():
     """Page de gestion de l'héritage"""
-    heritages = Heritage.query.filter_by(user_id=current_user.id).order_by(Heritage.date_created.desc()).all()
+    heritages = Heritage.query.filter_by(user_id=current_user.id).order_by(
+        Heritage.date_created.desc()).all()
 
     # Récupérer les membres de famille pour sélection bénéficiaires
-    mes_familles = MembreFamille.query.filter_by(user_id=current_user.id, statut='valide').all()
+    mes_familles = MembreFamille.query.filter_by(
+        user_id=current_user.id, statut='valide').all()
     membres_disponibles = []
     for mf in mes_familles:
-        autres_membres = MembreFamille.query.filter_by(famille_id=mf.famille_id, statut='valide').filter(MembreFamille.user_id != current_user.id).all()
+        autres_membres = MembreFamille.query.filter_by(famille_id=mf.famille_id, statut='valide').filter(
+            MembreFamille.user_id != current_user.id).all()
         for membre in autres_membres:
             if membre.user not in membres_disponibles:
                 membres_disponibles.append(membre.user)
 
-    return render_template('heritage.html', heritages=heritages, membres_disponibles=membres_disponibles)
+    return render_template('heritage.html', heritages=heritages,
+                           membres_disponibles=membres_disponibles)
 
 
 @app.route('/add_heritage', methods=['POST'])
@@ -2584,7 +2727,8 @@ def add_heritage():
         flash('Le titre est obligatoire', 'danger')
         return redirect(url_for('heritage'))
 
-    valeur_estimee, erreur = valider_montant(valeur_estimee_str) if valeur_estimee_str != '0' else (0, None)
+    valeur_estimee, erreur = valider_montant(
+        valeur_estimee_str) if valeur_estimee_str != '0' else (0, None)
     if erreur:
         flash(erreur, 'danger')
         return redirect(url_for('heritage'))
@@ -2602,8 +2746,10 @@ def add_heritage():
         if fichier and fichier.filename:
             filename = secure_filename(fichier.filename)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            unique_filename = f"heritage_{current_user.id}_{timestamp}_{filename}"
-            fichier_path = os.path.join(app.config['HERITAGE_FOLDER'], unique_filename)
+            unique_filename = f"heritage_{
+                current_user.id}_{timestamp}_{filename}"
+            fichier_path = os.path.join(
+                app.config['HERITAGE_FOLDER'], unique_filename)
 
             fichier.save(fichier_path)
             fichier_crypte = crypter_fichier(fichier_path)
@@ -2614,7 +2760,7 @@ def add_heritage():
         flash(f'Bien "{titre}" ajouté à votre héritage!', 'success')
 
         creer_notification(current_user.id, 'heritage', 'Héritage mis à jour',
-                          f'Bien "{titre}" ajouté à votre testament numérique', url_for('heritage'))
+                           f'Bien "{titre}" ajouté à votre testament numérique', url_for('heritage'))
     except Exception as e:
         db.session.rollback()
         flash(f'Erreur lors de l\'ajout: {str(e)}', 'danger')
@@ -2626,12 +2772,14 @@ def add_heritage():
 @login_required
 def add_beneficiaire(heritage_id):
     """Ajoute un bénéficiaire à un bien"""
-    heritage_item = Heritage.query.filter_by(id=heritage_id, user_id=current_user.id).first_or_404()
+    Heritage.query.filter_by(
+        id=heritage_id, user_id=current_user.id).first_or_404()
 
     beneficiaire_id = request.form.get('beneficiaire_id')
     pourcentage_str = request.form.get('pourcentage', '100')
     message_personnel = request.form.get('message_personnel', '').strip()
-    condition_deblocage = request.form.get('condition_deblocage', 'inactivite_30j')
+    condition_deblocage = request.form.get(
+        'condition_deblocage', 'inactivite_30j')
 
     if not beneficiaire_id:
         flash('Veuillez sélectionner un bénéficiaire', 'danger')
@@ -2665,10 +2813,12 @@ def add_beneficiaire(heritage_id):
 def delete_heritage(id):
     """Supprime un bien de l'héritage"""
     try:
-        heritage_item = Heritage.query.filter_by(id=id, user_id=current_user.id).first_or_404()
+        heritage_item = Heritage.query.filter_by(
+            id=id, user_id=current_user.id).first_or_404()
 
         if heritage_item.fichier_crypte:
-            fichier_path = os.path.join(app.config['HERITAGE_FOLDER'], heritage_item.fichier_crypte)
+            fichier_path = os.path.join(
+                app.config['HERITAGE_FOLDER'], heritage_item.fichier_crypte)
             if os.path.exists(fichier_path):
                 os.remove(fichier_path)
 
@@ -2690,21 +2840,24 @@ def delete_heritage(id):
 def famille():
     """Page de gestion familiale"""
     # Familles dont je suis chef
-    mes_familles_chef = Famille.query.filter_by(chef_famille_id=current_user.id).all()
+    mes_familles_chef = Famille.query.filter_by(
+        chef_famille_id=current_user.id).all()
 
     # Familles dont je suis membre
-    mes_appartenances = MembreFamille.query.filter_by(user_id=current_user.id, statut='valide').all()
+    mes_appartenances = MembreFamille.query.filter_by(
+        user_id=current_user.id, statut='valide').all()
 
     # Demandes en attente de validation (si je suis chef)
     demandes_attente = []
     for fam in mes_familles_chef:
-        demandes = MembreFamille.query.filter_by(famille_id=fam.id, statut='en_attente').all()
+        demandes = MembreFamille.query.filter_by(
+            famille_id=fam.id, statut='en_attente').all()
         demandes_attente.extend(demandes)
 
     return render_template('famille.html',
-                         mes_familles_chef=mes_familles_chef,
-                         mes_appartenances=mes_appartenances,
-                         demandes_attente=demandes_attente)
+                           mes_familles_chef=mes_familles_chef,
+                           mes_appartenances=mes_appartenances,
+                           demandes_attente=demandes_attente)
 
 
 @app.route('/create_famille', methods=['POST'])
@@ -2740,11 +2893,13 @@ def create_famille():
         db.session.add(membre_chef)
         db.session.commit()
 
-        flash(f'Famille "{nom}" créée! Code d\'invitation: {nouvelle_famille.code_invitation}', 'success')
+        flash(
+            f'Famille "{nom}" créée! Code d\'invitation: {nouvelle_famille.code_invitation}', 'success')
 
         creer_notification(current_user.id, 'famille', 'Famille créée',
-                          f'Votre famille "{nom}" est prête! Partagez le code: {nouvelle_famille.code_invitation}',
-                          url_for('famille'), 'haute')
+                           f'Votre famille "{nom}" est prête! Partagez le code: {
+                               nouvelle_famille.code_invitation}',
+                           url_for('famille'), 'haute')
     except Exception as e:
         db.session.rollback()
         flash(f'Erreur: {str(e)}', 'danger')
@@ -2763,7 +2918,8 @@ def rejoindre_famille():
         return redirect(url_for('famille'))
 
     try:
-        famille_trouvee = Famille.query.filter_by(code_invitation=code_invitation).first()
+        famille_trouvee = Famille.query.filter_by(
+            code_invitation=code_invitation).first()
 
         if not famille_trouvee:
             flash('Code d\'invitation invalide', 'danger')
@@ -2776,7 +2932,8 @@ def rejoindre_famille():
         ).first()
 
         if deja_membre:
-            flash('Vous êtes déjà membre de cette famille ou avez une demande en cours', 'warning')
+            flash(
+                'Vous êtes déjà membre de cette famille ou avez une demande en cours', 'warning')
             return redirect(url_for('famille'))
 
         # Créer demande d'adhésion
@@ -2789,12 +2946,15 @@ def rejoindre_famille():
         db.session.add(demande)
         db.session.commit()
 
-        flash(f'Demande envoyée pour rejoindre la famille "{famille_trouvee.nom}"', 'success')
+        flash(
+            f'Demande envoyée pour rejoindre la famille "{famille_trouvee.nom}"', 'success')
 
         # Notifier le chef de famille
         creer_notification(famille_trouvee.chef_famille_id, 'famille', 'Nouvelle demande d\'adhésion',
-                          f'{current_user.nom} souhaite rejoindre votre famille "{famille_trouvee.nom}"',
-                          url_for('famille'), 'haute')
+                           f'{
+                               current_user.nom} souhaite rejoindre votre famille "{
+                               famille_trouvee.nom}"',
+                           url_for('famille'), 'haute')
     except Exception as e:
         db.session.rollback()
         flash(f'Erreur: {str(e)}', 'danger')
@@ -2824,8 +2984,9 @@ def valider_membre(membre_id):
 
         # Notifier le membre accepté
         creer_notification(demande.user_id, 'famille', 'Demande acceptée',
-                          f'Vous faites maintenant partie de la famille "{famille_concernee.nom}"!',
-                          url_for('famille'), 'haute')
+                           f'Vous faites maintenant partie de la famille "{
+                               famille_concernee.nom}"!',
+                           url_for('famille'), 'haute')
     except Exception as e:
         db.session.rollback()
         flash(f'Erreur: {str(e)}', 'danger')
@@ -2861,11 +3022,13 @@ def refuser_membre(membre_id):
 @login_required
 def famille_qrcode(famille_id):
     """Génère le QR code d'invitation pour une famille"""
-    famille_obj = Famille.query.filter_by(id=famille_id, chef_famille_id=current_user.id).first_or_404()
+    famille_obj = Famille.query.filter_by(
+        id=famille_id, chef_famille_id=current_user.id).first_or_404()
 
     qr_buffer = generer_qr_code_invitation(famille_obj.code_invitation)
 
-    return send_file(qr_buffer, mimetype='image/png', download_name=f'invitation_famille_{famille_obj.nom}.png')
+    return send_file(qr_buffer, mimetype='image/png',
+                     download_name=f'invitation_famille_{famille_obj.nom}.png')
 
 
 # ==================== ROUTES BLOCKCHAIN & VÉRIFICATION ====================
@@ -2874,11 +3037,12 @@ def famille_qrcode(famille_id):
 @login_required
 def api_blockchain_verify():
     """API: Vérification de l'intégrité de la blockchain utilisateur"""
-    type_transaction = request.args.get('type', 'depense')  # depense, revenu, transfert
-    
-    resultat_depenses = verifier_integrite_blockchain(current_user.id, 'depense')
+    _ = request.args.get('type', 'depense')  # depense, revenu, transfert
+
+    resultat_depenses = verifier_integrite_blockchain(
+        current_user.id, 'depense')
     resultat_revenus = verifier_integrite_blockchain(current_user.id, 'revenu')
-    
+
     return jsonify({
         'user_id': current_user.id,
         'depenses': resultat_depenses,
@@ -2894,19 +3058,20 @@ def api_blockchain_stats():
     """API: Statistiques blockchain (nombre de transactions, hashes, etc.)"""
     nb_depenses = Depense.query.filter_by(user_id=current_user.id).count()
     nb_revenus = Revenu.query.filter_by(user_id=current_user.id).count()
-    nb_transferts = TransfertCompte.query.filter_by(user_id=current_user.id).count()
-    
+    nb_transferts = TransfertCompte.query.filter_by(
+        user_id=current_user.id).count()
+
     # Calculer le nombre de transactions avec hash
     nb_depenses_hash = Depense.query.filter(
         Depense.user_id == current_user.id,
         Depense.blockchain_hash.isnot(None)
     ).count()
-    
+
     nb_revenus_hash = Revenu.query.filter(
         Revenu.user_id == current_user.id,
         Revenu.blockchain_hash.isnot(None)
     ).count()
-    
+
     return jsonify({
         'total_transactions': nb_depenses + nb_revenus + nb_transferts,
         'depenses': {'total': nb_depenses, 'avec_hash': nb_depenses_hash},
@@ -2921,7 +3086,7 @@ def api_blockchain_stats():
 def api_budget_alertes():
     """API: Vérifier et déclencher alertes budget (WhatsApp si configuré)"""
     alertes = verifier_depassement_budget(current_user.id)
-    
+
     return jsonify({
         'user_id': current_user.id,
         'nb_alertes': len(alertes),
@@ -2951,7 +3116,7 @@ def score_sante():
         )
         db.session.add(nouveau_score)
         db.session.commit()
-    except:
+    except Exception:
         db.session.rollback()
 
     return jsonify(score_data)
@@ -2959,7 +3124,8 @@ def score_sante():
 
 @app.route('/api/predictions')
 @login_required
-@cache.cached(timeout=600, key_prefix=lambda: f'predictions_{current_user.id}')  # Cache 10 min
+# Cache 10 min
+@cache.cached(timeout=600, key_prefix=lambda: f'predictions_{current_user.id}')
 def api_predictions():
     """API: Prédictions ML des dépenses futures (3 mois)"""
     nb_mois = request.args.get('mois', 3, type=int)
@@ -2972,14 +3138,16 @@ def api_predictions():
 @app.route('/service-worker.js')
 def service_worker():
     """Servir le service worker pour PWA"""
-    return send_file('static/service-worker.js', mimetype='application/javascript')
+    return send_file('static/service-worker.js',
+                     mimetype='application/javascript')
 
 
 @app.route('/notifications')
 @login_required
 def notifications():
     """Page des notifications"""
-    notifications_list = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.date_created.desc()).limit(50).all()
+    notifications_list = Notification.query.filter_by(user_id=current_user.id).order_by(
+        Notification.date_created.desc()).limit(50).all()
 
     # Marquer comme lues
     for notif in notifications_list:
@@ -2987,14 +3155,16 @@ def notifications():
             notif.est_lue = True
     db.session.commit()
 
-    return render_template('notifications.html', notifications=notifications_list)
+    return render_template('notifications.html',
+                           notifications=notifications_list)
 
 
 @app.route('/api/notifications/count')
 @login_required
 def api_notifications_count():
     """API: Nombre de notifications non lues"""
-    count = Notification.query.filter_by(user_id=current_user.id, est_lue=False).count()
+    count = Notification.query.filter_by(
+        user_id=current_user.id, est_lue=False).count()
     return jsonify({'count': count})
 
 
@@ -3004,8 +3174,10 @@ def api_notifications_count():
 @login_required
 def rappels():
     """Page de gestion des rappels"""
-    rappels_actifs = Rappel.query.filter_by(user_id=current_user.id, est_complete=False).order_by(Rappel.date_echeance).all()
-    rappels_completes = Rappel.query.filter_by(user_id=current_user.id, est_complete=True).order_by(Rappel.date_completed.desc()).limit(10).all()
+    rappels_actifs = Rappel.query.filter_by(
+        user_id=current_user.id, est_complete=False).order_by(Rappel.date_echeance).all()
+    rappels_completes = Rappel.query.filter_by(user_id=current_user.id, est_complete=True).order_by(
+        Rappel.date_completed.desc()).limit(10).all()
 
     # Déterminer les rappels en retard et à venir
     now = datetime.now()
@@ -3013,9 +3185,9 @@ def rappels():
     rappels_a_venir = [r for r in rappels_actifs if r.date_echeance >= now]
 
     return render_template('rappels.html',
-                         rappels_urgents=rappels_urgents,
-                         rappels_a_venir=rappels_a_venir,
-                         rappels_completes=rappels_completes)
+                           rappels_urgents=rappels_urgents,
+                           rappels_a_venir=rappels_a_venir,
+                           rappels_completes=rappels_completes)
 
 
 @app.route('/add_rappel', methods=['POST'])
@@ -3034,7 +3206,8 @@ def add_rappel():
         flash('Le titre et la date d\'échéance sont obligatoires', 'danger')
         return redirect(url_for('rappels'))
 
-    montant, erreur = valider_montant(montant_str) if montant_str != '0' else (0, None)
+    montant, erreur = valider_montant(
+        montant_str) if montant_str != '0' else (0, None)
     if erreur:
         montant = 0
 
@@ -3058,8 +3231,8 @@ def add_rappel():
         # Créer notification
         jours_restants = (date_echeance - datetime.now()).days
         creer_notification(current_user.id, 'alerte', 'Nouveau rappel',
-                          f'Rappel "{titre}" prévu dans {jours_restants} jours',
-                          url_for('rappels'), 'normale')
+                           f'Rappel "{titre}" prévu dans {jours_restants} jours',
+                           url_for('rappels'), 'normale')
     except Exception as e:
         db.session.rollback()
         flash(f'Erreur: {str(e)}', 'danger')
@@ -3072,7 +3245,8 @@ def add_rappel():
 def complete_rappel(id):
     """Marque un rappel comme terminé"""
     try:
-        rappel = Rappel.query.filter_by(id=id, user_id=current_user.id).first_or_404()
+        rappel = Rappel.query.filter_by(
+            id=id, user_id=current_user.id).first_or_404()
         rappel.est_complete = True
         rappel.date_completed = datetime.utcnow()
 
@@ -3112,7 +3286,8 @@ def complete_rappel(id):
 def delete_rappel(id):
     """Supprime un rappel"""
     try:
-        rappel = Rappel.query.filter_by(id=id, user_id=current_user.id).first_or_404()
+        rappel = Rappel.query.filter_by(
+            id=id, user_id=current_user.id).first_or_404()
         titre = rappel.titre
         db.session.delete(rappel)
         db.session.commit()
@@ -3130,17 +3305,22 @@ def delete_rappel(id):
 @login_required
 def objectifs():
     """Page de gestion des objectifs d'épargne"""
-    objectifs_perso = ObjectifFinancier.query.filter_by(user_id=current_user.id, famille_id=None).order_by(ObjectifFinancier.est_atteint, ObjectifFinancier.date_created.desc()).all()
+    objectifs_perso = ObjectifFinancier.query.filter_by(user_id=current_user.id, famille_id=None).order_by(
+        ObjectifFinancier.est_atteint, ObjectifFinancier.date_created.desc()).all()
 
     # Objectifs familiaux
-    mes_familles_ids = [mf.famille_id for mf in MembreFamille.query.filter_by(user_id=current_user.id, statut='valide').all()]
-    objectifs_familiaux = ObjectifFinancier.query.filter(ObjectifFinancier.famille_id.in_(mes_familles_ids)).all() if mes_familles_ids else []
+    mes_familles_ids = [mf.famille_id for mf in MembreFamille.query.filter_by(
+        user_id=current_user.id, statut='valide').all()]
+    objectifs_familiaux = ObjectifFinancier.query.filter(
+        ObjectifFinancier.famille_id.in_(mes_familles_ids)).all() if mes_familles_ids else []
 
     # Calculer progression pour chaque objectif
     objectifs_data = []
     for obj in objectifs_perso + objectifs_familiaux:
-        pourcentage = (obj.montant_actuel / obj.montant_cible * 100) if obj.montant_cible > 0 else 0
-        jours_restants = (obj.date_limite - datetime.now()).days if obj.date_limite else None
+        pourcentage = (obj.montant_actuel / obj.montant_cible *
+                       100) if obj.montant_cible > 0 else 0
+        jours_restants = (obj.date_limite - datetime.now()
+                          ).days if obj.date_limite else None
 
         objectifs_data.append({
             'objectif': obj,
@@ -3173,7 +3353,8 @@ def add_objectif():
         return redirect(url_for('objectifs'))
 
     try:
-        date_limite = datetime.strptime(date_limite_str, '%Y-%m-%d') if date_limite_str else None
+        date_limite = datetime.strptime(
+            date_limite_str, '%Y-%m-%d') if date_limite_str else None
 
         nouvel_objectif = ObjectifFinancier(
             titre=titre,
@@ -3189,8 +3370,8 @@ def add_objectif():
         flash(f'Objectif "{titre}" créé avec succès!', 'success')
 
         creer_notification(current_user.id, 'alerte', 'Nouvel objectif',
-                          f'Objectif "{titre}" : {montant_cible:,.0f} FCFA',
-                          url_for('objectifs'), 'normale')
+                           f'Objectif "{titre}" : {montant_cible:,.0f} FCFA',
+                           url_for('objectifs'), 'normale')
     except Exception as e:
         db.session.rollback()
         flash(f'Erreur: {str(e)}', 'danger')
@@ -3222,11 +3403,12 @@ def contribuer_objectif(id):
         if objectif.montant_actuel >= objectif.montant_cible and not objectif.est_atteint:
             objectif.est_atteint = True
             objectif.date_atteint = datetime.utcnow()
-            flash(f'🎉 Félicitations ! Objectif "{objectif.titre}" atteint !', 'success')
+            flash(
+                f'🎉 Félicitations ! Objectif "{objectif.titre}" atteint !', 'success')
 
             creer_notification(objectif.user_id, 'alerte', '🎉 Objectif atteint !',
-                              f'L\'objectif "{objectif.titre}" est atteint !',
-                              url_for('objectifs'), 'haute')
+                               f'L\'objectif "{objectif.titre}" est atteint !',
+                               url_for('objectifs'), 'haute')
         else:
             flash(f'Contribution de {montant:,.0f} FCFA ajoutée !', 'success')
 
@@ -3243,7 +3425,8 @@ def contribuer_objectif(id):
 def delete_objectif(id):
     """Supprime un objectif"""
     try:
-        objectif = ObjectifFinancier.query.filter_by(id=id, user_id=current_user.id).first_or_404()
+        objectif = ObjectifFinancier.query.filter_by(
+            id=id, user_id=current_user.id).first_or_404()
         titre = objectif.titre
         db.session.delete(objectif)
         db.session.commit()
@@ -3261,54 +3444,64 @@ def init_db():
     """Initialise la base de données"""
     with app.app_context():
         db.create_all()
-        
+
         # Migration: Ajouter colonnes blockchain si elles n'existent pas
         try:
             from sqlalchemy import text, inspect
-            
+
             # Utiliser l'inspector SQLAlchemy (plus fiable)
             inspector = inspect(db.engine)
-            depenses_columns = [col['name'] for col in inspector.get_columns('depenses')]
-            
+            depenses_columns = [col['name']
+                                for col in inspector.get_columns('depenses')]
+
             if 'blockchain_hash' not in depenses_columns:
                 print("[MIGRATION] Ajout colonnes blockchain...")
-                
+
                 # Depenses - Ajout colonne par colonne pour éviter les erreurs
                 try:
-                    db.session.execute(text("ALTER TABLE depenses ADD COLUMN blockchain_hash VARCHAR(64)"))
+                    db.session.execute(
+                        text("ALTER TABLE depenses ADD COLUMN blockchain_hash VARCHAR(64)"))
                     db.session.commit()
                 except Exception as e:
-                    print(f"[INFO] blockchain_hash depenses déjà présente ou erreur: {e}")
+                    print(
+                        f"[INFO] blockchain_hash depenses déjà présente ou erreur: {e}")
                     db.session.rollback()
-                
+
                 try:
-                    db.session.execute(text("ALTER TABLE depenses ADD COLUMN prev_hash VARCHAR(64)"))
+                    db.session.execute(
+                        text("ALTER TABLE depenses ADD COLUMN prev_hash VARCHAR(64)"))
                     db.session.commit()
                 except Exception as e:
-                    print(f"[INFO] prev_hash depenses déjà présente ou erreur: {e}")
+                    print(
+                        f"[INFO] prev_hash depenses déjà présente ou erreur: {e}")
                     db.session.rollback()
-                
+
                 # Revenus
                 try:
-                    db.session.execute(text("ALTER TABLE revenus ADD COLUMN blockchain_hash VARCHAR(64)"))
+                    db.session.execute(
+                        text("ALTER TABLE revenus ADD COLUMN blockchain_hash VARCHAR(64)"))
                     db.session.commit()
                 except Exception as e:
-                    print(f"[INFO] blockchain_hash revenus déjà présente ou erreur: {e}")
+                    print(
+                        f"[INFO] blockchain_hash revenus déjà présente ou erreur: {e}")
                     db.session.rollback()
-                
+
                 try:
-                    db.session.execute(text("ALTER TABLE revenus ADD COLUMN prev_hash VARCHAR(64)"))
+                    db.session.execute(
+                        text("ALTER TABLE revenus ADD COLUMN prev_hash VARCHAR(64)"))
                     db.session.commit()
                 except Exception as e:
-                    print(f"[INFO] prev_hash revenus déjà présente ou erreur: {e}")
+                    print(
+                        f"[INFO] prev_hash revenus déjà présente ou erreur: {e}")
                     db.session.rollback()
-                
+
                 print("[OK] Migration blockchain terminée")
             else:
                 print("[OK] Colonnes blockchain déjà présentes")
-                
+
         except Exception as e:
-            print(f"[WARNING] Erreur migration blockchain (non bloquante): {str(e)}")
+            print(
+                f"[WARNING] Erreur migration blockchain (non bloquante): {str(e)}")
             db.session.rollback()
 
         # Créer utilisateur admin par défaut s'il n'existe pas
@@ -3344,13 +3537,20 @@ if __name__ == '__main__':
     is_production = os.environ.get('FLASK_ENV') == 'production'
 
     if not is_production:
-        print("\n" + "="*50)
+        print("\n" + "=" * 50)
         print("NyangaBudget - Application demarree!")
-        print("="*50)
+        print("=" * 50)
         print("URL: http://localhost:5000")
         print("Compte admin: admin@nyanga.cm / admin123")
         print("Dashboard: http://localhost:5000/dashboard")
         print("API REST: http://localhost:5000/api/stats")
-        print("="*50 + "\n")
+        print("=" * 50 + "\n")
 
-    app.run(debug=not is_production, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    # Désactiver le reloader en développement pour éviter les crashes
+    app.run(
+        debug=False,  # Mode debug désactivé pour stabilité
+        use_reloader=False,  # Pas de rechargement automatique
+        host='0.0.0.0',
+        port=int(os.environ.get('PORT', 5000)),
+        threaded=True
+    )
