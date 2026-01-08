@@ -1853,9 +1853,7 @@ def scan_recu():
 
         # Sauvegarder le reçu
         filename = secure_filename(file.filename)
-        unique_filename = f"{
-            current_user.id}_{
-            datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
+        unique_filename = f"{current_user.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
         filepath = os.path.join(app.config['RECEIPTS_FOLDER'], unique_filename)
         file.save(filepath)
 
@@ -2727,8 +2725,7 @@ def add_heritage():
         if fichier and fichier.filename:
             filename = secure_filename(fichier.filename)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            unique_filename = f"heritage_{
-                current_user.id}_{timestamp}_{filename}"
+            unique_filename = f"heritage_{current_user.id}_{timestamp}_{filename}"
             fichier_path = os.path.join(
                 app.config['HERITAGE_FOLDER'], unique_filename)
 
