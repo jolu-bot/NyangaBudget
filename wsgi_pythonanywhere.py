@@ -23,7 +23,7 @@ if env_path.exists():
                 os.environ[key.strip()] = value.strip()
 
 # Importer l'application Flask
-from app import app as application
+from app import app as application  # noqa: E402
 
 # Point d'entrée WSGI
 if __name__ == '__main__':

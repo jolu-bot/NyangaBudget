@@ -6,7 +6,6 @@ Génère automatiquement les clés et prépare les fichiers de configuration
 """
 
 import secrets
-import os
 from pathlib import Path
 
 
@@ -155,15 +154,15 @@ if __name__ == '__main__':
     
     print("\n✅ Configuration terminée avec succès !\n")
     print("📁 Fichiers créés :")
-    print(f"   • .env.pythonanywhere")
-    print(f"   • wsgi_pythonanywhere.py (avec votre username)")
+    print("   • .env.pythonanywhere")
+    print("   • wsgi_pythonanywhere.py (avec votre username)")
     
     print("\n🚀 PROCHAINES ÉTAPES SUR PYTHONANYWHERE :\n")
     print("1️⃣  Téléverser tous les fichiers du projet")
     print("    ou cloner via Git : git clone https://github.com/jolu-bot/NyangaBudget.git\n")
-    
+
     print("2️⃣  Copier .env.pythonanywhere vers .env :")
-    print(f"    cp .env.pythonanywhere .env\n")
+    print("    cp .env.pythonanywhere .env\n")
     
     print("3️⃣  Créer l'environnement virtuel :")
     print("    mkvirtualenv --python=/usr/bin/python3.10 nyanga_env")
