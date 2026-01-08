@@ -2870,8 +2870,7 @@ def create_famille():
             f'Famille "{nom}" créée! Code d\'invitation: {nouvelle_famille.code_invitation}', 'success')
 
         creer_notification(current_user.id, 'famille', 'Famille créée',
-                           f'Votre famille "{nom}" est prête! Partagez le code: {
-                               nouvelle_famille.code_invitation}',
+                           f'Votre famille "{nom}" est prête! Partagez le code: {nouvelle_famille.code_invitation}',
                            url_for('famille'), 'haute')
     except Exception as e:
         db.session.rollback()
@@ -2955,8 +2954,7 @@ def valider_membre(membre_id):
 
         # Notifier le membre accepté
         creer_notification(demande.user_id, 'famille', 'Demande acceptée',
-                           f'Vous faites maintenant partie de la famille "{
-                               famille_concernee.nom}"!',
+                           f'Vous faites maintenant partie de la famille "{famille_concernee.nom}"!',
                            url_for('famille'), 'haute')
     except Exception as e:
         db.session.rollback()
