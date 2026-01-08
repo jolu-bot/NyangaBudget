@@ -2522,10 +2522,7 @@ def transfert_compte():
 
         # Notification
         creer_notification(current_user.id, 'compte', 'Transfert effectué',
-                           f'{
-                               montant:,.0f} FCFA transféré de {
-                               compte_source.nom} vers {
-                               compte_destination.nom}',
+                           f'{montant:,.0f} FCFA transféré de {compte_source.nom} vers {compte_destination.nom}',
                            url_for('comptes'), 'haute')
     except Exception as e:
         db.session.rollback()
@@ -2927,9 +2924,7 @@ def rejoindre_famille():
 
         # Notifier le chef de famille
         creer_notification(famille_trouvee.chef_famille_id, 'famille', 'Nouvelle demande d\'adhésion',
-                           f'{
-                               current_user.nom} souhaite rejoindre votre famille "{
-                               famille_trouvee.nom}"',
+                           f'{current_user.nom} souhaite rejoindre votre famille "{famille_trouvee.nom}"',
                            url_for('famille'), 'haute')
     except Exception as e:
         db.session.rollback()
