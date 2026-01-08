@@ -2251,8 +2251,7 @@ def export_csv():
         else:
             output.write('Date,Type,Description,Categorie,Montant\n')
 
-        filename = f'nyanga_transactions_{
-            datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        filename = f'nyanga_transactions_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
         csv_bytes = '\ufeff' + output.getvalue()
 
         response = make_response(csv_bytes)
@@ -2271,8 +2270,7 @@ def export_pdf():
     """Export PDF du rapport financier"""
     try:
         pdf_buffer = generer_pdf(current_user.id)
-        filename = f'nyanga_rapport_{
-            datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
+        filename = f'nyanga_rapport_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
 
         return send_file(
             pdf_buffer,
