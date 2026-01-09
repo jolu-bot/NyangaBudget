@@ -127,7 +127,6 @@ def init_jwt(app, db, User, Depense, Revenu, Categorie, Compte):
 
     @api_v1.route('/auth/refresh', methods=['POST'])
     @jwt_required(refresh=True)
-
     def refresh():
         """
         Rafraîchir l'access token
@@ -147,7 +146,6 @@ def init_jwt(app, db, User, Depense, Revenu, Categorie, Compte):
 
     @api_v1.route('/auth/me', methods=['GET'])
     @jwt_required()
-
     def get_current_user():
         """
         Obtenir les infos de l'utilisateur connecté
@@ -180,7 +178,6 @@ def init_jwt(app, db, User, Depense, Revenu, Categorie, Compte):
 
     @api_v1.route('/depenses', methods=['GET'])
     @jwt_required()
-
     def get_depenses():
         """
         Liste des dépenses avec pagination
@@ -250,7 +247,6 @@ def init_jwt(app, db, User, Depense, Revenu, Categorie, Compte):
 
     @api_v1.route('/depenses/<int:depense_id>', methods=['GET'])
     @jwt_required()
-
     def get_depense(depense_id):
         """Détails d'une dépense"""
         user_id = get_jwt_identity()
@@ -277,7 +273,6 @@ def init_jwt(app, db, User, Depense, Revenu, Categorie, Compte):
 
     @api_v1.route('/depenses', methods=['POST'])
     @jwt_required()
-
     def create_depense():
         """
         Créer une nouvelle dépense
@@ -321,7 +316,6 @@ def init_jwt(app, db, User, Depense, Revenu, Categorie, Compte):
 
     @api_v1.route('/depenses/<int:depense_id>', methods=['PUT'])
     @jwt_required()
-
     def update_depense(depense_id):
         """Modifier une dépense"""
         user_id = get_jwt_identity()
@@ -355,7 +349,6 @@ def init_jwt(app, db, User, Depense, Revenu, Categorie, Compte):
 
     @api_v1.route('/depenses/<int:depense_id>', methods=['DELETE'])
     @jwt_required()
-
     def delete_depense(depense_id):
         """Supprimer une dépense"""
         user_id = get_jwt_identity()
@@ -376,7 +369,6 @@ def init_jwt(app, db, User, Depense, Revenu, Categorie, Compte):
 
     @api_v1.route('/revenus', methods=['GET'])
     @jwt_required()
-
     def get_revenus():
         """Liste des revenus avec pagination"""
         user_id = get_jwt_identity()
@@ -404,7 +396,6 @@ def init_jwt(app, db, User, Depense, Revenu, Categorie, Compte):
 
     @api_v1.route('/revenus', methods=['POST'])
     @jwt_required()
-
     def create_revenu():
         """Créer un nouveau revenu"""
         user_id = get_jwt_identity()
@@ -434,7 +425,6 @@ def init_jwt(app, db, User, Depense, Revenu, Categorie, Compte):
 
     @api_v1.route('/revenus/<int:revenu_id>', methods=['DELETE'])
     @jwt_required()
-
     def delete_revenu(revenu_id):
         """Supprimer un revenu"""
         user_id = get_jwt_identity()
@@ -455,7 +445,6 @@ def init_jwt(app, db, User, Depense, Revenu, Categorie, Compte):
 
     @api_v1.route('/categories', methods=['GET'])
     @jwt_required()
-
     def get_categories():
         """Liste des catégories"""
         user_id = get_jwt_identity()
@@ -473,7 +462,6 @@ def init_jwt(app, db, User, Depense, Revenu, Categorie, Compte):
 
     @api_v1.route('/categories', methods=['POST'])
     @jwt_required()
-
     def create_categorie():
         """Créer une catégorie"""
         user_id = get_jwt_identity()
@@ -502,7 +490,6 @@ def init_jwt(app, db, User, Depense, Revenu, Categorie, Compte):
 
     @api_v1.route('/stats', methods=['GET'])
     @jwt_required()
-
     def get_stats():
         """Statistiques globales"""
         user_id = get_jwt_identity()
@@ -533,6 +520,7 @@ def init_jwt(app, db, User, Depense, Revenu, Categorie, Compte):
 
     return jwt
 
+
 # ==================== DOCUMENTATION SWAGGER ====================
 
 SWAGGER_CONFIG = {
@@ -562,5 +550,3 @@ SWAGGER_CONFIG = {
         }
     }
 }
-
-

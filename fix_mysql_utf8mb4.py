@@ -7,8 +7,9 @@ import pymysql
 from urllib.parse import unquote
 
 # Configuration depuis DATABASE_URL
-DATABASE_URL = os.environ.get('DATABASE_URL',
-          "mysql+pymysql://Jolubot:Jody%21%40%3EYed@Jolubot.mysql.pythonanywhere-services.com/Jolubot$nyangabudget")
+DATABASE_URL = os.environ.get(
+    'DATABASE_URL',
+    "mysql+pymysql://Jolubot:Jody%21%40%3EYed@Jolubot.mysql.pythonanywhere-services.com/Jolubot$nyangabudget")
 
 # Parser l'URL
 if 'mysql+pymysql://' in DATABASE_URL:
