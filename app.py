@@ -3678,6 +3678,120 @@ def api_check_reminders():
     return jsonify({'reminders': results})
 
 
+@app.route('/api/parse-excel', methods=['POST'])
+@login_required
+def api_parse_excel():
+    """Parser un fichier Excel et retourner headers + data"""
+    try:
+        import pandas as pd
+        from io import BytesIO
+        
+        if 'file' not in request.files:
+            return jsonify({'error': 'Aucun fichier fourni'}), 400
+        
+        file = request.files['file']
+        
+        # Lire le fichier Excel
+        df = pd.read_excel(BytesIO(file.read()))
+        
+        # Convertir en format JSON
+        headers = df.columns.tolist()
+        data = df.to_dict('records')
+        
+        return jsonify({
+            'success': True,
+            'headers': headers,
+            'data': data,
+            'rows': len(data)
+        })
+        
+    except Exception as e:
+        print(f"Erreur parse Excel: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/import', methods=['POST'])
+@login_required
+def api_import():
+    """Importer des données (dépenses ou revenus)"""
+    try:
+        data = request.get_json()
+        import_type = data.get('type')
+        records = data.get('data', [])
+        
+        imported = 0
+        errors = 0
+        
+        if import_type == 'depenses':
+            for record in records:
+                try:
+                    # Trouver ou créer la catégorie
+                    categorie = None
+                    if 'categorie' in record:
+                        categorie = Categorie.query.filter_by(
+                            user_id=current_user.id,
+                            nom=record['categorie']
+                        ).first()
+                        
+                        if not categorie:
+                            categorie = Categorie(
+                                user_id=current_user.id,
+                                nom=record['categorie'],
+                                type='depense'
+                            )
+                            db.session.add(categorie)
+                            db.session.flush()
+                    
+                    # Créer la dépense
+                    depense = Depense(
+                        user_id=current_user.id,
+                        nom=record.get('nom', 'Import'),
+                        montant=float(record['montant']),
+                        date=datetime.strptime(record['date'], '%Y-%m-%d') if isinstance(record['date'], str) else record['date'],
+                        categorie_id=categorie.id if categorie else None
+                    )
+                    
+                    db.session.add(depense)
+                    imported += 1
+                    
+                except Exception as e:
+                    print(f"Erreur import ligne: {e}")
+                    errors += 1
+                    continue
+        
+        elif import_type == 'revenus':
+            for record in records:
+                try:
+                    revenu = Revenu(
+                        user_id=current_user.id,
+                        source=record.get('source', 'Import'),
+                        montant=float(record['montant']),
+                        date=datetime.strptime(record['date'], '%Y-%m-%d') if isinstance(record['date'], str) else record['date'],
+                        recurrent=record.get('recurrent', False)
+                    )
+                    
+                    db.session.add(revenu)
+                    imported += 1
+                    
+                except Exception as e:
+                    print(f"Erreur import ligne: {e}")
+                    errors += 1
+                    continue
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'imported': imported,
+            'errors': errors
+        })
+        
+    except Exception as e:
+        print(f"Erreur import: {e}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
 # ==================== GESTION DES ERREURS ====================
 
 @app.errorhandler(429)
