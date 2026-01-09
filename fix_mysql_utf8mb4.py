@@ -15,9 +15,9 @@ if 'mysql+pymysql://' in DATABASE_URL:
     # Supprimer le préfixe
     url = DATABASE_URL.replace('mysql+pymysql://', '')
     
-    # Séparer credentials et host/db
+    # Séparer credentials et host/db (utiliser rsplit pour éviter les @ dans le mot de passe)
     if '@' in url:
-        credentials, host_and_db = url.split('@', 1)
+        credentials, host_and_db = url.rsplit('@', 1)  # Split par le DERNIER @
         
         # Parser credentials
         if ':' in credentials:
