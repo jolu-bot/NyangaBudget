@@ -11,7 +11,7 @@ const STATIC_ASSETS = [
     '/',
     '/static/style.css',
     '/static/darkmode.js',
-    '/static/manifest.json',
+    '/static/manifest.webmanifest',
     '/static/images/logo.png',
     '/static/images/logo-white.png',
     // Bootstrap CDN (cache pour hors ligne)
