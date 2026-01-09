@@ -40,7 +40,6 @@ import json
 import csv
 import os
 import secrets
-import secrets
 import string
 import base64
 from io import BytesIO, StringIO
@@ -49,7 +48,6 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.units import cm
-import os
 
 # Cryptographie pour coffre-fort et héritage
 from cryptography.fernet import Fernet
@@ -1871,24 +1869,24 @@ def extraire_info_recu_ocr(image_path):
         # Import conditionnel pour ne pas bloquer si non installé
         import pytesseract
         from PIL import Image
-        
+
         # Vérifier si OpenAI est configuré
         openai_key = os.environ.get('OPENAI_API_KEY')
         if not openai_key:
             return None, "Clé API OpenAI non configurée"
-        
+
         # Extraction du texte avec Tesseract OCR
         image = Image.open(image_path)
         texte_brut = pytesseract.image_to_string(image, lang='fra')
-        
+
         if not texte_brut.strip():
             return None, "Aucun texte détecté dans l'image"
-        
+
         # Analyse intelligente avec OpenAI
         try:
             import openai
             client = openai.OpenAI(api_key=openai_key)
-            
+
             prompt = f"""Analyse ce texte de reçu et extrait les informations au format JSON:
 {texte_brut}
 
@@ -1899,26 +1897,26 @@ Retourne UNIQUEMENT un JSON avec:
   "date": "YYYY-MM-DD" ou null,
   "categorie": "suggestion de catégorie (Alimentation/Transport/Santé/etc)"
 }}"""
-            
+
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3
             )
-            
+
             resultat = response.choices[0].message.content.strip()
             # Extraire le JSON de la réponse
             if resultat.startswith('```json'):
                 resultat = resultat.split('```json')[1].split('```')[0].strip()
             elif resultat.startswith('```'):
                 resultat = resultat.split('```')[1].split('```')[0].strip()
-            
+
             data = json.loads(resultat)
             return data, None
-            
+
         except Exception as e:
             return None, f"Erreur OpenAI: {str(e)}"
-            
+
     except ImportError:
         return None, "pytesseract non installé. Installez: pip install pytesseract"
     except Exception as e:
