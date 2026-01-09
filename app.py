@@ -613,11 +613,13 @@ class Rappel(db.Model):
     description = db.Column(db.Text)
     montant = db.Column(db.Float)
     date_echeance = db.Column(db.DateTime, nullable=False)
+    date_rappel = db.Column(db.DateTime)  # Date du rappel avant échéance
     # paiement, facture, echeance, autre
     type_rappel = db.Column(db.String(50), default='paiement')
     est_recurrent = db.Column(db.Boolean, default=False)
     frequence = db.Column(db.String(20))  # mensuel, hebdomadaire, annuel
     est_complete = db.Column(db.Boolean, default=False)
+    notifie = db.Column(db.Boolean, default=False)  # Pour éviter notifs multiples
     date_completed = db.Column(db.DateTime)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -3505,6 +3507,175 @@ def init_db():
             print("[OK] Utilisateur admin cree: admin@nyanga.cm / admin123")
 
         print("[OK] Base de donnees initialisee")
+
+
+# ==================== API ENDPOINTS ====================
+
+@app.route('/api/search')
+@login_required
+def api_search():
+    """API de recherche globale"""
+    query = request.args.get('q', '').strip()
+    
+    if len(query) < 2:
+        return jsonify({'total': 0, 'query': query})
+    
+    # Rechercher dans les dépenses
+    depenses = Depense.query.filter(
+        Depense.user_id == current_user.id,
+        Depense.nom.ilike(f'%{query}%')
+    ).limit(5).all()
+    
+    # Rechercher dans les revenus
+    revenus = Revenu.query.filter(
+        Revenu.user_id == current_user.id,
+        Revenu.source.ilike(f'%{query}%')
+    ).limit(5).all()
+    
+    # Rechercher dans les catégories
+    categories = Categorie.query.filter(
+        Categorie.user_id == current_user.id,
+        Categorie.nom.ilike(f'%{query}%')
+    ).limit(5).all()
+    
+    # Formater les résultats
+    results = {
+        'query': query,
+        'total': len(depenses) + len(revenus) + len(categories),
+        'depenses': [{
+            'id': d.id,
+            'nom': d.nom,
+            'montant': float(d.montant),
+            'categorie': d.categorie.nom if d.categorie else None,
+            'date': d.date.strftime('%d/%m/%Y')
+        } for d in depenses],
+        'revenus': [{
+            'id': r.id,
+            'source': r.source,
+            'montant': float(r.montant),
+            'date': r.date.strftime('%d/%m/%Y')
+        } for r in revenus],
+        'categories': [{
+            'id': c.id,
+            'nom': c.nom,
+            'icon': c.icon,
+            'count': len(c.depenses)
+        } for c in categories]
+    }
+    
+    return jsonify(results)
+
+
+@app.route('/api/export/excel')
+@login_required
+def api_export_excel():
+    """Exporter toutes les données en Excel avec formatage"""
+    try:
+        import xlsxwriter
+        from io import BytesIO
+        
+        output = BytesIO()
+        workbook = xlsxwriter.Workbook(output, {'in_memory': True})
+        
+        # Formats
+        header_format = workbook.add_format({
+            'bold': True,
+            'bg_color': '#667eea',
+            'font_color': 'white',
+            'border': 1
+        })
+        
+        currency_format = workbook.add_format({'num_format': '#,##0 FCFA'})
+        date_format = workbook.add_format({'num_format': 'dd/mm/yyyy'})
+        
+        # Feuille Dépenses
+        worksheet_depenses = workbook.add_worksheet('Dépenses')
+        headers_depenses = ['Date', 'Nom', 'Montant', 'Catégorie', 'Compte']
+        
+        for col, header in enumerate(headers_depenses):
+            worksheet_depenses.write(0, col, header, header_format)
+        
+        depenses = Depense.query.filter_by(user_id=current_user.id).order_by(Depense.date.desc()).all()
+        for row, depense in enumerate(depenses, start=1):
+            worksheet_depenses.write_datetime(row, 0, depense.date, date_format)
+            worksheet_depenses.write(row, 1, depense.nom)
+            worksheet_depenses.write(row, 2, float(depense.montant), currency_format)
+            worksheet_depenses.write(row, 3, depense.categorie.nom if depense.categorie else 'N/A')
+            worksheet_depenses.write(row, 4, depense.compte.nom if depense.compte else 'N/A')
+        
+        # Feuille Revenus
+        worksheet_revenus = workbook.add_worksheet('Revenus')
+        headers_revenus = ['Date', 'Source', 'Montant', 'Récurrent']
+        
+        for col, header in enumerate(headers_revenus):
+            worksheet_revenus.write(0, col, header, header_format)
+        
+        revenus = Revenu.query.filter_by(user_id=current_user.id).order_by(Revenu.date.desc()).all()
+        for row, revenu in enumerate(revenus, start=1):
+            worksheet_revenus.write_datetime(row, 0, revenu.date, date_format)
+            worksheet_revenus.write(row, 1, revenu.source)
+            worksheet_revenus.write(row, 2, float(revenu.montant), currency_format)
+            worksheet_revenus.write(row, 3, 'Oui' if revenu.recurrent else 'Non')
+        
+        # Feuille Synthèse
+        worksheet_synthese = workbook.add_worksheet('Synthèse')
+        
+        total_depenses = sum(d.montant for d in depenses)
+        total_revenus = sum(r.montant for r in revenus)
+        solde = total_revenus - total_depenses
+        
+        worksheet_synthese.write('A1', 'Total Revenus', header_format)
+        worksheet_synthese.write('B1', float(total_revenus), currency_format)
+        
+        worksheet_synthese.write('A2', 'Total Dépenses', header_format)
+        worksheet_synthese.write('B2', float(total_depenses), currency_format)
+        
+        worksheet_synthese.write('A3', 'Solde', header_format)
+        worksheet_synthese.write('B3', float(solde), currency_format)
+        
+        workbook.close()
+        output.seek(0)
+        
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=f'nyanga_budget_{datetime.now().strftime("%Y%m%d")}.xlsx',
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        
+    except Exception as e:
+        print(f"Erreur export Excel: {e}")
+        flash('Erreur lors de l\'export Excel', 'danger')
+        return redirect(url_for('dashboard'))
+
+
+@app.route('/api/check-reminders')
+@login_required
+def api_check_reminders():
+    """Vérifier les rappels à venir dans les prochaines 24h"""
+    now = datetime.now()
+    tomorrow = now + timedelta(days=1)
+    
+    # Rappels dans les prochaines 24h non encore notifiés
+    reminders = Rappel.query.filter(
+        Rappel.user_id == current_user.id,
+        Rappel.date_rappel <= tomorrow,
+        Rappel.date_rappel >= now,
+        Rappel.notifie == False
+    ).all()
+    
+    results = [{
+        'id': r.id,
+        'titre': r.titre,
+        'date': r.date_rappel.strftime('%d/%m/%Y %H:%M')
+    } for r in reminders]
+    
+    # Marquer comme notifiés
+    for r in reminders:
+        r.notifie = True
+    db.session.commit()
+    
+    return jsonify({'reminders': results})
 
 
 # ==================== GESTION DES ERREURS ====================
