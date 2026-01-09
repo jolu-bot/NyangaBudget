@@ -14,6 +14,7 @@ from datetime import timedelta
 # Blueprint API v1
 api_v1 = Blueprint('api_v1', __name__, url_prefix='/api/v1')
 
+
 def init_jwt(app, db, User, Depense, Revenu, Categorie, Compte):
     """
     Initialiser JWT et créer les routes API
@@ -34,7 +35,6 @@ def init_jwt(app, db, User, Depense, Revenu, Categorie, Compte):
     # ==================== AUTHENTIFICATION ====================
 
     @api_v1.route('/auth/register', methods=['POST'])
-
     def register():
         """
         Inscription d'un nouvel utilisateur
@@ -80,7 +80,6 @@ def init_jwt(app, db, User, Depense, Revenu, Categorie, Compte):
         }), 201
 
     @api_v1.route('/auth/login', methods=['POST'])
-
     def login():
         """
         Connexion et génération tokens JWT
@@ -563,3 +562,5 @@ SWAGGER_CONFIG = {
         }
     }
 }
+
+
