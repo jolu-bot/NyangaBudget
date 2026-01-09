@@ -51,10 +51,12 @@
 .brand-logo {
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
     transition: var(--transition);
+    animation: float 3s ease-in-out infinite;
 }
 
 .navbar-brand-modern:hover .brand-logo {
-    transform: scale(1.05);
+    transform: scale(1.1) rotate(5deg);
+    filter: drop-shadow(0 4px 8px rgba(102, 126, 234, 0.4));
 }
 
 .brand-text {
@@ -65,6 +67,33 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
     white-space: nowrap;
+    transition: var(--transition);
+    position: relative;
+}
+
+.brand-text::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--primary-gradient);
+    transition: width 0.3s ease;
+}
+
+.navbar-brand-modern:hover .brand-text::after {
+    width: 100%;
+}
+
+.navbar-brand-modern:hover .brand-text {
+    transform: translateY(-2px);
+    letter-spacing: 0.5px;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
 }
 
 /* ==================== SEARCH BAR ==================== */
@@ -450,11 +479,19 @@
     .nav-link-modern i {
         font-size: 1.1rem;
     }
+    
+    .brand-text {
+        font-size: 1.25rem;
+    }
 }
 
 @media (max-width: 1200px) {
     .brand-text {
-        display: none;
+        font-size: 1.1rem;
+    }
+    
+    .navbar-brand-modern {
+        gap: 0.5rem;
     }
 }
 
@@ -464,7 +501,7 @@
     }
 
     .brand-text {
-        font-size: 1.25rem;
+        font-size: 1rem;
     }
 }
 
@@ -478,7 +515,12 @@
     }
 
     .brand-text {
-        display: none;
+        font-size: 0.9rem;
+        letter-spacing: -0.5px;
+    }
+    
+    .brand-logo {
+        height: 32px;
     }
 
     .action-btn {
