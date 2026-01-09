@@ -21,6 +21,7 @@
 # ✅ QR Code d'invitation familiale
 from flask_caching import Cache
 import hashlib
+from image_optimizer import ImageOptimizer, optimize_uploaded_file
 
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file, make_response, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -78,6 +79,11 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Max 16MB par fichier
 app.config['UPLOAD_FOLDER'] = upload_folder
 app.config['VAULT_FOLDER'] = vault_folder
 app.config['HERITAGE_FOLDER'] = heritage_folder
+
+# Configuration du cache
+app.config['CACHE_TYPE'] = 'SimpleCache'  # Cache mémoire
+app.config['CACHE_DEFAULT_TIMEOUT'] = 300  # 5 minutes par défaut
+cache = Cache(app)
 app.config['RECEIPTS_FOLDER'] = receipts_folder
 app.config['ALLOWED_EXTENSIONS'] = {
     'pdf', 'png', 'jpg', 'jpeg', 'txt', 'doc', 'docx'}
@@ -1876,7 +1882,12 @@ def scan_recu():
         filename = secure_filename(file.filename)
         unique_filename = f"{current_user.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
         filepath = os.path.join(app.config['RECEIPTS_FOLDER'], unique_filename)
+        
+        # Sauvegarder et optimiser l'image
         file.save(filepath)
+        if ImageOptimizer.allowed_file(filename):
+            ImageOptimizer.optimize_image(filepath, quality=80)
+            print(f"✅ Reçu optimisé: {filepath}")
 
         # Extraction manuelle assistée (formulaire pré-rempli avec suggestions)
         # L'utilisateur remplit les détails après upload
@@ -3780,6 +3791,11 @@ def api_import():
         
         db.session.commit()
         
+        # Invalider le cache après import
+        cache.delete(f'dashboard_{current_user.id}')
+        cache.delete(f'depenses_{current_user.id}')
+        cache.delete(f'revenus_{current_user.id}')
+        
         return jsonify({
             'success': True,
             'imported': imported,
@@ -3790,6 +3806,86 @@ def api_import():
         print(f"Erreur import: {e}")
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/load-more')
+@login_required
+@cache.cached(timeout=60, query_string=True)
+def api_load_more():
+    """Endpoint paginé pour chargement progressif"""
+    page = request.args.get('page', 1, type=int)
+    limit = request.args.get('limit', 20, type=int)
+    data_type = request.args.get('type', 'depenses')
+    
+    offset = (page - 1) * limit
+    
+    if data_type == 'depenses':
+        query = Depense.query.filter_by(user_id=current_user.id).order_by(Depense.date.desc())
+        total = query.count()
+        items = query.offset(offset).limit(limit).all()
+        
+        results = [{
+            'id': d.id,
+            'nom': d.nom,
+            'montant': float(d.montant),
+            'date': d.date.strftime('%d/%m/%Y'),
+            'categorie': d.categorie.nom if d.categorie else 'N/A',
+            'html': render_template('partials/depense_item.html', depense=d) if os.path.exists('templates/partials/depense_item.html') else None
+        } for d in items]
+        
+    elif data_type == 'revenus':
+        query = Revenu.query.filter_by(user_id=current_user.id).order_by(Revenu.date.desc())
+        total = query.count()
+        items = query.offset(offset).limit(limit).all()
+        
+        results = [{
+            'id': r.id,
+            'source': r.source,
+            'montant': float(r.montant),
+            'date': r.date.strftime('%d/%m/%Y'),
+            'html': render_template('partials/revenu_item.html', revenu=r) if os.path.exists('templates/partials/revenu_item.html') else None
+        } for r in items]
+    
+    else:
+        return jsonify({'error': 'Type invalide'}), 400
+    
+    return jsonify({
+        'items': results,
+        'hasMore': (offset + limit) < total,
+        'total': total,
+        'page': page
+    })
+
+
+@app.route('/api/stats')
+@login_required
+@cache.cached(timeout=600, key_prefix=lambda: f'stats_{current_user.id}')
+def api_stats():
+    """Statistiques générales (cachées 10 min)"""
+    stats = calculer_statistiques(current_user.id)
+    
+    return jsonify({
+        'total_depenses': float(stats.get('total_depenses', 0)),
+        'total_revenus': float(stats.get('total_revenus', 0)),
+        'solde': float(stats.get('solde', 0)),
+        'nb_depenses': stats.get('nb_depenses', 0),
+        'nb_revenus': stats.get('nb_revenus', 0),
+        'depense_moy': float(stats.get('depense_moy', 0)),
+        'evolution_mois': stats.get('evolution_mois', 0)
+    })
+
+
+@app.route('/api/clear-cache', methods=['POST'])
+@login_required
+def api_clear_cache():
+    """Vider le cache de l'utilisateur"""
+    cache.delete(f'dashboard_{current_user.id}')
+    cache.delete(f'stats_{current_user.id}')
+    cache.delete(f'depenses_{current_user.id}')
+    cache.delete(f'revenus_{current_user.id}')
+    
+    return jsonify({'success': True, 'message': 'Cache vidé'})
+
 
 
 # ==================== GESTION DES ERREURS ====================
