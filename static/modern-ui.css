@@ -1,0 +1,389 @@
+/* ==================== NYANGABUDGET MODERN UI 2.0 ==================== */
+/* Glassmorphism, Animations fluides, Design moderne */
+
+/* ==================== VARIABLES MODERNES ==================== */
+:root {
+    /* Couleurs primaires avec gradients */
+    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    --gradient-danger: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+    --gradient-warning: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --gradient-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    
+    /* Glassmorphism */
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.18);
+    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    --glass-blur: blur(10px);
+    
+    /* Animations */
+    --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    
+    /* Espacements */
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 1.5rem;
+    --spacing-lg: 2rem;
+    --spacing-xl: 3rem;
+    
+    /* Border radius moderne */
+    --radius-sm: 8px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
+    --radius-xl: 32px;
+}
+
+/* Dark mode variables */
+body.dark-mode {
+    --glass-bg: rgba(0, 0, 0, 0.3);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* ==================== GLASSMORPHISM CARDS ==================== */
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--glass-shadow);
+    transition: var(--transition-smooth);
+    overflow: hidden;
+}
+
+.glass-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.45);
+}
+
+.glass-card-gradient {
+    position: relative;
+    overflow: hidden;
+}
+
+.glass-card-gradient::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--gradient-primary);
+}
+
+/* ==================== ANIMATIONS FLUIDES ==================== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.6s ease-out;
+}
+
+.animate-slide-in {
+    animation: slideInRight 0.6s ease-out;
+}
+
+.animate-pulse {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* ==================== BOUTONS MODERNES ==================== */
+.btn-modern {
+    position: relative;
+    padding: 12px 32px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: none;
+    overflow: hidden;
+    transition: var(--transition-smooth);
+}
+
+.btn-modern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.2);
+    transition: var(--transition-smooth);
+}
+
+.btn-modern:hover::before {
+    left: 100%;
+}
+
+.btn-gradient-primary {
+    background: var(--gradient-primary);
+    color: white;
+}
+
+.btn-gradient-success {
+    background: var(--gradient-success);
+    color: white;
+}
+
+.btn-gradient-danger {
+    background: var(--gradient-danger);
+    color: white;
+}
+
+/* ==================== STATISTIQUES CARDS ==================== */
+.stat-card {
+    position: relative;
+    padding: var(--spacing-md);
+    border-radius: var(--radius-lg);
+    background: white;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    transition: var(--transition-bounce);
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-primary);
+}
+
+.stat-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin-bottom: var(--spacing-sm);
+    transition: var(--transition-smooth);
+}
+
+.stat-card:hover .stat-icon {
+    transform: rotate(10deg) scale(1.1);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ==================== LOADING SKELETON ==================== */
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--radius-sm);
+}
+
+.skeleton-text {
+    height: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.skeleton-title {
+    height: 2rem;
+    margin-bottom: 1rem;
+    width: 60%;
+}
+
+/* ==================== TOAST NOTIFICATIONS ==================== */
+.toast-modern {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    min-width: 300px;
+    padding: var(--spacing-md);
+    border-radius: var(--radius-lg);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-shadow);
+    border: 1px solid var(--glass-border);
+    animation: slideInRight 0.5s ease-out;
+    z-index: 9999;
+}
+
+.toast-success {
+    border-left: 4px solid #11998e;
+}
+
+.toast-error {
+    border-left: 4px solid #eb3349;
+}
+
+.toast-warning {
+    border-left: 4px solid #f093fb;
+}
+
+/* ==================== GRAPHIQUES MODERNES ==================== */
+.chart-container {
+    position: relative;
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    background: white;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin-bottom: var(--spacing-md);
+}
+
+body.dark-mode .chart-container {
+    background: #2a2a2a;
+}
+
+.chart-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: var(--spacing-md);
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ==================== BARRE DE RECHERCHE MODERNE ==================== */
+.search-modern {
+    position: relative;
+    max-width: 600px;
+    margin: 0 auto var(--spacing-lg);
+}
+
+.search-modern input {
+    width: 100%;
+    padding: 16px 50px 16px 20px;
+    border-radius: var(--radius-xl);
+    border: 2px solid transparent;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    font-size: 1rem;
+    transition: var(--transition-smooth);
+}
+
+.search-modern input:focus {
+    outline: none;
+    border-color: #667eea;
+    background: white;
+    box-shadow: 0 8px 30px rgba(102, 126, 234, 0.3);
+}
+
+.search-modern .search-icon {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    color: #667eea;
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+    .glass-card {
+        border-radius: var(--radius-md);
+    }
+    
+    .stat-card {
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .chart-container {
+        padding: var(--spacing-md);
+    }
+}
+
+/* ==================== UTILITAIRES ==================== */
+.gradient-text {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.shadow-modern {
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.hover-lift {
+    transition: var(--transition-smooth);
+}
+
+.hover-lift:hover {
+    transform: translateY(-5px);
+}
+
+/* ==================== SCROLL SMOOTH ==================== */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--gradient-primary);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #667eea;
+}
+
+body.dark-mode ::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
