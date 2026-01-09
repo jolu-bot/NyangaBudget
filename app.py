@@ -38,6 +38,8 @@ import plotly.graph_objs as go
 import plotly
 import json
 import csv
+import os
+import secrets
 import secrets
 import string
 import base64
@@ -1863,6 +1865,66 @@ def delete_depense(id):
 
 # ==================== SCANNER DE REÇUS INTELLIGENT ====================
 
+def extraire_info_recu_ocr(image_path):
+    """Extraction automatique des informations d'un reçu avec OCR + OpenAI"""
+    try:
+        # Import conditionnel pour ne pas bloquer si non installé
+        import pytesseract
+        from PIL import Image
+        
+        # Vérifier si OpenAI est configuré
+        openai_key = os.environ.get('OPENAI_API_KEY')
+        if not openai_key:
+            return None, "Clé API OpenAI non configurée"
+        
+        # Extraction du texte avec Tesseract OCR
+        image = Image.open(image_path)
+        texte_brut = pytesseract.image_to_string(image, lang='fra')
+        
+        if not texte_brut.strip():
+            return None, "Aucun texte détecté dans l'image"
+        
+        # Analyse intelligente avec OpenAI
+        try:
+            import openai
+            client = openai.OpenAI(api_key=openai_key)
+            
+            prompt = f"""Analyse ce texte de reçu et extrait les informations au format JSON:
+{texte_brut}
+
+Retourne UNIQUEMENT un JSON avec:
+{{
+  "nom": "nom du commerce ou description",
+  "montant": montant numérique (float),
+  "date": "YYYY-MM-DD" ou null,
+  "categorie": "suggestion de catégorie (Alimentation/Transport/Santé/etc)"
+}}"""
+            
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3
+            )
+            
+            resultat = response.choices[0].message.content.strip()
+            # Extraire le JSON de la réponse
+            if resultat.startswith('```json'):
+                resultat = resultat.split('```json')[1].split('```')[0].strip()
+            elif resultat.startswith('```'):
+                resultat = resultat.split('```')[1].split('```')[0].strip()
+            
+            data = json.loads(resultat)
+            return data, None
+            
+        except Exception as e:
+            return None, f"Erreur OpenAI: {str(e)}"
+            
+    except ImportError:
+        return None, "pytesseract non installé. Installez: pip install pytesseract"
+    except Exception as e:
+        return None, f"Erreur OCR: {str(e)}"
+
+
 @app.route('/scan_recu', methods=['GET', 'POST'])
 @login_required
 @limiter.limit("20 per hour")
@@ -1892,11 +1954,26 @@ def scan_recu():
             ImageOptimizer.optimize_image(filepath, quality=80)
             print(f"✅ Reçu optimisé: {filepath}")
 
+        # Tentative d'extraction OCR automatique
+        donnees_ocr = None
+        if os.environ.get('OPENAI_API_KEY'):
+            donnees_ocr, erreur_ocr = extraire_info_recu_ocr(filepath)
+            if donnees_ocr:
+                flash('🤖 Informations extraites automatiquement par OCR!', 'success')
+            elif erreur_ocr:
+                flash(f'ℹ️ OCR non disponible: {erreur_ocr}', 'info')
+
         # Extraction manuelle assistée (formulaire pré-rempli avec suggestions)
         # L'utilisateur remplit les détails après upload
         montant = request.form.get('montant', '').strip()
         nom = request.form.get('nom', '').strip()
         categorie_id = request.form.get('categorie_id', '').strip()
+
+        # Utiliser les données OCR si disponibles et formulaire vide
+        if not montant and donnees_ocr:
+            montant = str(donnees_ocr.get('montant', ''))
+        if not nom and donnees_ocr:
+            nom = donnees_ocr.get('nom', '')
 
         if montant and nom:
             # Créer la dépense
@@ -1930,15 +2007,22 @@ def scan_recu():
                 if os.path.exists(filepath):
                     os.remove(filepath)
         else:
-            flash('📷 Reçu sauvegardé! Remplissez les détails ci-dessous.', 'info')
-            # Retourner au formulaire avec le fichier uploadé
+            message = '📷 Reçu sauvegardé! '
+            if donnees_ocr:
+                message += 'Vérifiez les informations extraites automatiquement.'
+            else:
+                message += 'Remplissez les détails ci-dessous.'
+            flash(message, 'info')
+            # Retourner au formulaire avec le fichier uploadé et données OCR
             return render_template('scan_recu.html',
                                    categories=Categorie.query.filter_by(
                                        user_id=current_user.id).all(),
                                    uploaded_file=unique_filename,
+                                   donnees_ocr=donnees_ocr,
                                    depenses_avec_recu=0,
                                    montant_total=0,
-                                   pourcentage=0)
+                                   pourcentage=0,
+                                   ocr_enabled=bool(os.environ.get('OPENAI_API_KEY')))
 
     # Statistiques reçus
     total_depenses = Depense.query.filter_by(user_id=current_user.id).count()
@@ -1959,7 +2043,8 @@ def scan_recu():
                                user_id=current_user.id).all(),
                            depenses_avec_recu=depenses_avec_recu,
                            montant_total=f"{montant_total:,.0f}",
-                           pourcentage=pourcentage)
+                           pourcentage=pourcentage,
+                           ocr_enabled=bool(os.environ.get('OPENAI_API_KEY')))
 
 
 @app.route('/revenues')

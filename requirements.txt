@@ -22,3 +22,5 @@ XlsxWriter>=3.1.9
 pandas>=2.1.0
 Flask-JWT-Extended>=4.6.0
 flask-swagger-ui>=4.11.1
+pytesseract>=0.3.10
+openai>=1.0.0
