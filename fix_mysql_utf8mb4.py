@@ -4,6 +4,7 @@ Script de conversion des tables MySQL en utf8mb4 pour support complet des émoji
 """
 import os
 import pymysql
+from urllib.parse import unquote
 
 # Configuration depuis DATABASE_URL
 DATABASE_URL = os.environ.get('DATABASE_URL', 
@@ -11,17 +12,40 @@ DATABASE_URL = os.environ.get('DATABASE_URL',
 
 # Parser l'URL
 if 'mysql+pymysql://' in DATABASE_URL:
-    parts = DATABASE_URL.replace('mysql+pymysql://', '').split('@')
-    user_pass = parts[0].split(':')
-    host_db = parts[1].split('/')
+    # Supprimer le préfixe
+    url = DATABASE_URL.replace('mysql+pymysql://', '')
     
-    username = user_pass[0]
-    # Décoder le mot de passe URL-encodé
-    password = user_pass[1].replace('%21', '!').replace('%40', '@').replace('%3E', '>')
-    host = host_db[0]
-    database = host_db[1]
+    # Séparer credentials et host/db
+    if '@' in url:
+        credentials, host_and_db = url.split('@', 1)
+        
+        # Parser credentials
+        if ':' in credentials:
+            username, password_encoded = credentials.split(':', 1)
+            # Décoder le mot de passe URL-encodé
+            password = unquote(password_encoded)
+        else:
+            username = credentials
+            password = ''
+        
+        # Parser host et database
+        if '/' in host_and_db:
+            host, database_with_params = host_and_db.split('/', 1)
+            # Retirer les paramètres éventuels (?charset=...)
+            database = database_with_params.split('?')[0] if '?' in database_with_params else database_with_params
+        else:
+            host = host_and_db
+            database = ''
+            host = host_and_db
+            database = ''
+    
+    if not database:
+        print("❌ Impossible d'extraire le nom de la base de données de DATABASE_URL")
+        exit(1)
     
     print(f"🔄 Connexion à MySQL...")
+    print(f"👤 Utilisateur: {username}")
+    print(f"🌐 Hôte: {host}")
     print(f"📍 Base: {database}")
     
     try:
