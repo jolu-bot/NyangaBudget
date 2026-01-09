@@ -21,7 +21,8 @@
 # ✅ QR Code d'invitation familiale
 from flask_caching import Cache
 import hashlib
-from image_optimizer import ImageOptimizer, optimize_uploaded_file
+from image_optimizer import ImageOptimizer
+from api_rest import init_jwt
 
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file, make_response, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -116,13 +117,14 @@ db = SQLAlchemy(app)
 
 # ==================== UTILITAIRES BASE DE DONNÉES ====================
 
+
 def format_date_sql(format_string, column):
     """
     Fonction utilitaire pour formater des dates compatible MySQL et SQLite
     MySQL utilise DATE_FORMAT(), SQLite utilise strftime()
     """
     database_url = app.config['SQLALCHEMY_DATABASE_URI']
-    
+
     if 'mysql' in database_url or 'pymysql' in database_url:
         # MySQL: convertir format strftime vers DATE_FORMAT
         mysql_format = format_string.replace('%Y', '%Y').replace('%m', '%m').replace('%d', '%d')
@@ -132,6 +134,7 @@ def format_date_sql(format_string, column):
     else:
         # SQLite
         return func.strftime(format_string, column)
+
 
 # Initialisation de Flask-Login
 login_manager = LoginManager()
@@ -1882,7 +1885,7 @@ def scan_recu():
         filename = secure_filename(file.filename)
         unique_filename = f"{current_user.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
         filepath = os.path.join(app.config['RECEIPTS_FOLDER'], unique_filename)
-        
+
         # Sauvegarder et optimiser l'image
         file.save(filepath)
         if ImageOptimizer.allowed_file(filename):
@@ -2316,14 +2319,6 @@ def export_pdf():
 
 
 # ==================== API REST ====================
-
-@app.route('/api/stats', methods=['GET'])
-@login_required
-def api_stats():
-    """API: Statistiques globales"""
-    stats = calculer_statistiques(current_user.id)
-    return jsonify(stats)
-
 
 @app.route('/api/depenses', methods=['GET', 'POST'])
 @login_required
@@ -3527,28 +3522,28 @@ def init_db():
 def api_search():
     """API de recherche globale"""
     query = request.args.get('q', '').strip()
-    
+
     if len(query) < 2:
         return jsonify({'total': 0, 'query': query})
-    
+
     # Rechercher dans les dépenses
     depenses = Depense.query.filter(
         Depense.user_id == current_user.id,
         Depense.nom.ilike(f'%{query}%')
     ).limit(5).all()
-    
+
     # Rechercher dans les revenus
     revenus = Revenu.query.filter(
         Revenu.user_id == current_user.id,
         Revenu.source.ilike(f'%{query}%')
     ).limit(5).all()
-    
+
     # Rechercher dans les catégories
     categories = Categorie.query.filter(
         Categorie.user_id == current_user.id,
         Categorie.nom.ilike(f'%{query}%')
     ).limit(5).all()
-    
+
     # Formater les résultats
     results = {
         'query': query,
@@ -3573,7 +3568,7 @@ def api_search():
             'count': len(c.depenses)
         } for c in categories]
     }
-    
+
     return jsonify(results)
 
 
@@ -3584,10 +3579,10 @@ def api_export_excel():
     try:
         import xlsxwriter
         from io import BytesIO
-        
+
         output = BytesIO()
         workbook = xlsxwriter.Workbook(output, {'in_memory': True})
-        
+
         # Formats
         header_format = workbook.add_format({
             'bold': True,
@@ -3595,17 +3590,17 @@ def api_export_excel():
             'font_color': 'white',
             'border': 1
         })
-        
+
         currency_format = workbook.add_format({'num_format': '#,##0 FCFA'})
         date_format = workbook.add_format({'num_format': 'dd/mm/yyyy'})
-        
+
         # Feuille Dépenses
         worksheet_depenses = workbook.add_worksheet('Dépenses')
         headers_depenses = ['Date', 'Nom', 'Montant', 'Catégorie', 'Compte']
-        
+
         for col, header in enumerate(headers_depenses):
             worksheet_depenses.write(0, col, header, header_format)
-        
+
         depenses = Depense.query.filter_by(user_id=current_user.id).order_by(Depense.date.desc()).all()
         for row, depense in enumerate(depenses, start=1):
             worksheet_depenses.write_datetime(row, 0, depense.date, date_format)
@@ -3613,47 +3608,47 @@ def api_export_excel():
             worksheet_depenses.write(row, 2, float(depense.montant), currency_format)
             worksheet_depenses.write(row, 3, depense.categorie.nom if depense.categorie else 'N/A')
             worksheet_depenses.write(row, 4, depense.compte.nom if depense.compte else 'N/A')
-        
+
         # Feuille Revenus
         worksheet_revenus = workbook.add_worksheet('Revenus')
         headers_revenus = ['Date', 'Source', 'Montant', 'Récurrent']
-        
+
         for col, header in enumerate(headers_revenus):
             worksheet_revenus.write(0, col, header, header_format)
-        
+
         revenus = Revenu.query.filter_by(user_id=current_user.id).order_by(Revenu.date.desc()).all()
         for row, revenu in enumerate(revenus, start=1):
             worksheet_revenus.write_datetime(row, 0, revenu.date, date_format)
             worksheet_revenus.write(row, 1, revenu.source)
             worksheet_revenus.write(row, 2, float(revenu.montant), currency_format)
             worksheet_revenus.write(row, 3, 'Oui' if revenu.recurrent else 'Non')
-        
+
         # Feuille Synthèse
         worksheet_synthese = workbook.add_worksheet('Synthèse')
-        
+
         total_depenses = sum(d.montant for d in depenses)
         total_revenus = sum(r.montant for r in revenus)
         solde = total_revenus - total_depenses
-        
+
         worksheet_synthese.write('A1', 'Total Revenus', header_format)
         worksheet_synthese.write('B1', float(total_revenus), currency_format)
-        
+
         worksheet_synthese.write('A2', 'Total Dépenses', header_format)
         worksheet_synthese.write('B2', float(total_depenses), currency_format)
-        
+
         worksheet_synthese.write('A3', 'Solde', header_format)
         worksheet_synthese.write('B3', float(solde), currency_format)
-        
+
         workbook.close()
         output.seek(0)
-        
+
         return send_file(
             output,
             as_attachment=True,
             download_name=f'nyanga_budget_{datetime.now().strftime("%Y%m%d")}.xlsx',
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
-        
+
     except Exception as e:
         print(f"Erreur export Excel: {e}")
         flash('Erreur lors de l\'export Excel', 'danger')
@@ -3666,26 +3661,26 @@ def api_check_reminders():
     """Vérifier les rappels à venir dans les prochaines 24h"""
     now = datetime.now()
     tomorrow = now + timedelta(days=1)
-    
+
     # Rappels dans les prochaines 24h non encore notifiés
     reminders = Rappel.query.filter(
         Rappel.user_id == current_user.id,
         Rappel.date_rappel <= tomorrow,
         Rappel.date_rappel >= now,
-        Rappel.notifie == False
+        Rappel.notifie.is_(False)
     ).all()
-    
+
     results = [{
         'id': r.id,
         'titre': r.titre,
         'date': r.date_rappel.strftime('%d/%m/%Y %H:%M')
     } for r in reminders]
-    
+
     # Marquer comme notifiés
     for r in reminders:
         r.notifie = True
     db.session.commit()
-    
+
     return jsonify({'reminders': results})
 
 
@@ -3696,26 +3691,26 @@ def api_parse_excel():
     try:
         import pandas as pd
         from io import BytesIO
-        
+
         if 'file' not in request.files:
             return jsonify({'error': 'Aucun fichier fourni'}), 400
-        
+
         file = request.files['file']
-        
+
         # Lire le fichier Excel
         df = pd.read_excel(BytesIO(file.read()))
-        
+
         # Convertir en format JSON
         headers = df.columns.tolist()
         data = df.to_dict('records')
-        
+
         return jsonify({
             'success': True,
             'headers': headers,
             'data': data,
             'rows': len(data)
         })
-        
+
     except Exception as e:
         print(f"Erreur parse Excel: {e}")
         return jsonify({'error': str(e)}), 500
@@ -3729,10 +3724,10 @@ def api_import():
         data = request.get_json()
         import_type = data.get('type')
         records = data.get('data', [])
-        
+
         imported = 0
         errors = 0
-        
+
         if import_type == 'depenses':
             for record in records:
                 try:
@@ -3743,7 +3738,7 @@ def api_import():
                             user_id=current_user.id,
                             nom=record['categorie']
                         ).first()
-                        
+
                         if not categorie:
                             categorie = Categorie(
                                 user_id=current_user.id,
@@ -3752,7 +3747,7 @@ def api_import():
                             )
                             db.session.add(categorie)
                             db.session.flush()
-                    
+
                     # Créer la dépense
                     depense = Depense(
                         user_id=current_user.id,
@@ -3761,15 +3756,15 @@ def api_import():
                         date=datetime.strptime(record['date'], '%Y-%m-%d') if isinstance(record['date'], str) else record['date'],
                         categorie_id=categorie.id if categorie else None
                     )
-                    
+
                     db.session.add(depense)
                     imported += 1
-                    
+
                 except Exception as e:
                     print(f"Erreur import ligne: {e}")
                     errors += 1
                     continue
-        
+
         elif import_type == 'revenus':
             for record in records:
                 try:
@@ -3780,28 +3775,28 @@ def api_import():
                         date=datetime.strptime(record['date'], '%Y-%m-%d') if isinstance(record['date'], str) else record['date'],
                         recurrent=record.get('recurrent', False)
                     )
-                    
+
                     db.session.add(revenu)
                     imported += 1
-                    
+
                 except Exception as e:
                     print(f"Erreur import ligne: {e}")
                     errors += 1
                     continue
-        
+
         db.session.commit()
-        
+
         # Invalider le cache après import
         cache.delete(f'dashboard_{current_user.id}')
         cache.delete(f'depenses_{current_user.id}')
         cache.delete(f'revenus_{current_user.id}')
-        
+
         return jsonify({
             'success': True,
             'imported': imported,
             'errors': errors
         })
-        
+
     except Exception as e:
         print(f"Erreur import: {e}")
         db.session.rollback()
@@ -3816,14 +3811,14 @@ def api_load_more():
     page = request.args.get('page', 1, type=int)
     limit = request.args.get('limit', 20, type=int)
     data_type = request.args.get('type', 'depenses')
-    
+
     offset = (page - 1) * limit
-    
+
     if data_type == 'depenses':
         query = Depense.query.filter_by(user_id=current_user.id).order_by(Depense.date.desc())
         total = query.count()
         items = query.offset(offset).limit(limit).all()
-        
+
         results = [{
             'id': d.id,
             'nom': d.nom,
@@ -3832,12 +3827,12 @@ def api_load_more():
             'categorie': d.categorie.nom if d.categorie else 'N/A',
             'html': render_template('partials/depense_item.html', depense=d) if os.path.exists('templates/partials/depense_item.html') else None
         } for d in items]
-        
+
     elif data_type == 'revenus':
         query = Revenu.query.filter_by(user_id=current_user.id).order_by(Revenu.date.desc())
         total = query.count()
         items = query.offset(offset).limit(limit).all()
-        
+
         results = [{
             'id': r.id,
             'source': r.source,
@@ -3845,10 +3840,10 @@ def api_load_more():
             'date': r.date.strftime('%d/%m/%Y'),
             'html': render_template('partials/revenu_item.html', revenu=r) if os.path.exists('templates/partials/revenu_item.html') else None
         } for r in items]
-    
+
     else:
         return jsonify({'error': 'Type invalide'}), 400
-    
+
     return jsonify({
         'items': results,
         'hasMore': (offset + limit) < total,
@@ -3863,7 +3858,7 @@ def api_load_more():
 def api_stats():
     """Statistiques générales (cachées 10 min)"""
     stats = calculer_statistiques(current_user.id)
-    
+
     return jsonify({
         'total_depenses': float(stats.get('total_depenses', 0)),
         'total_revenus': float(stats.get('total_revenus', 0)),
@@ -3883,9 +3878,8 @@ def api_clear_cache():
     cache.delete(f'stats_{current_user.id}')
     cache.delete(f'depenses_{current_user.id}')
     cache.delete(f'revenus_{current_user.id}')
-    
-    return jsonify({'success': True, 'message': 'Cache vidé'})
 
+    return jsonify({'success': True, 'message': 'Cache vidé'})
 
 
 # ==================== GESTION DES ERREURS ====================
@@ -3899,10 +3893,7 @@ def ratelimit_handler(e):
 
 # ==================== API REST JWT ====================
 
-# Importer et initialiser l'API REST
-from api_rest import init_jwt
-
-jwt = init_jwt(app, db, User, Depense, Revenu, Categorie, Compte)
+jwt = init_jwt(app, db, User, Depense, Revenu, Categorie, CompteBancaire)
 
 print("[OK] API REST JWT initialisee sur /api/v1")
 
