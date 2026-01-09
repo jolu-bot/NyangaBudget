@@ -44,8 +44,8 @@ body.dark-mode {
 /* ==================== GLASSMORPHISM CARDS ==================== */
 .glass-card {
     background: var(--glass-bg);
-    backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
     box-shadow: var(--glass-shadow);
@@ -248,6 +248,7 @@ body.dark-mode {
     padding: var(--spacing-md);
     border-radius: var(--radius-lg);
     background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur);
     backdrop-filter: var(--glass-blur);
     box-shadow: var(--glass-shadow);
     border: 1px solid var(--glass-border);
@@ -304,6 +305,7 @@ body.dark-mode .chart-container {
     border-radius: var(--radius-xl);
     border: 2px solid transparent;
     background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur);
     backdrop-filter: var(--glass-blur);
     font-size: 1rem;
     transition: var(--transition-smooth);
