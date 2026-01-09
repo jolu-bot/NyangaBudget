@@ -57,61 +57,61 @@
 
                 <!-- Navigation Links (Desktop) -->
                 <div class="nav-links-modern d-none d-lg-flex">
-                    <a class="nav-link-modern {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
+                    <a class="nav-link-modern {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}" title="Page d'accueil">
                         <i class="bi bi-house-door-fill"></i>
                         <span>Accueil</span>
                     </a>
-                    <a class="nav-link-modern {% if request.endpoint == 'revenues' %}active{% endif %}" href="{{ url_for('revenues') }}">
+                    <a class="nav-link-modern {% if request.endpoint == 'revenues' %}active{% endif %}" href="{{ url_for('revenues') }}" title="Gestion des revenus">
                         <i class="bi bi-wallet2"></i>
                         <span>Revenus</span>
                     </a>
-                    <a class="nav-link-modern {% if request.endpoint == 'comptes' %}active{% endif %}" href="{{ url_for('comptes') }}">
+                    <a class="nav-link-modern {% if request.endpoint == 'comptes' %}active{% endif %}" href="{{ url_for('comptes') }}" title="Gestion des comptes">
                         <i class="bi bi-bank"></i>
                         <span>Comptes</span>
                     </a>
-                    <a class="nav-link-modern {% if request.endpoint == 'categories' %}active{% endif %}" href="{{ url_for('categories') }}">
+                    <a class="nav-link-modern {% if request.endpoint == 'categories' %}active{% endif %}" href="{{ url_for('categories') }}" title="Gestion des catégories">
                         <i class="bi bi-tags-fill"></i>
                         <span>Catégories</span>
                     </a>
-                    <a class="nav-link-modern {% if request.endpoint == 'budgets' %}active{% endif %}" href="{{ url_for('budgets') }}">
+                    <a class="nav-link-modern {% if request.endpoint == 'budgets' %}active{% endif %}" href="{{ url_for('budgets') }}" title="Gestion des budgets">
                         <i class="bi bi-calculator-fill"></i>
                         <span>Budgets</span>
                     </a>
-                    <a class="nav-link-modern {% if request.endpoint == 'scan_recu' %}active{% endif %}" href="{{ url_for('scan_recu') }}">
+                    <a class="nav-link-modern {% if request.endpoint == 'scan_recu' %}active{% endif %}" href="{{ url_for('scan_recu') }}" title="Scanner un reçu">
                         <i class="bi bi-upc-scan"></i>
                         <span>Scanner</span>
                     </a>
                     
                     <!-- Dropdown Sécurité -->
                     <div class="dropdown-modern">
-                        <button class="nav-link-modern" data-bs-toggle="dropdown">
+                        <button class="nav-link-modern" type="button" title="Options de sécurité">
                             <i class="bi bi-shield-lock-fill"></i>
                             <span>Sécurité</span>
                             <i class="bi bi-chevron-down dropdown-arrow"></i>
                         </button>
                         <ul class="dropdown-menu-modern">
-                            <li><a class="dropdown-item-modern" href="{{ url_for('coffre_fort') }}">
+                            <li><a class="dropdown-item-modern" href="{{ url_for('coffre_fort') }}" title="Coffre-fort numérique">
                                 <i class="bi bi-safe"></i>Coffre-Fort
                             </a></li>
-                            <li><a class="dropdown-item-modern" href="{{ url_for('heritage') }}">
+                            <li><a class="dropdown-item-modern" href="{{ url_for('heritage') }}" title="Planification d'héritage">
                                 <i class="bi bi-gift"></i>Héritage
                             </a></li>
                         </ul>
                     </div>
 
-                    <a class="nav-link-modern {% if request.endpoint == 'rappels' %}active{% endif %}" href="{{ url_for('rappels') }}">
+                    <a class="nav-link-modern {% if request.endpoint == 'rappels' %}active{% endif %}" href="{{ url_for('rappels') }}" title="Gestion des rappels">
                         <i class="bi bi-alarm-fill"></i>
                         <span>Rappels</span>
                     </a>
-                    <a class="nav-link-modern {% if request.endpoint == 'objectifs' %}active{% endif %}" href="{{ url_for('objectifs') }}">
+                    <a class="nav-link-modern {% if request.endpoint == 'objectifs' %}active{% endif %}" href="{{ url_for('objectifs') }}" title="Objectifs financiers">
                         <i class="bi bi-trophy-fill"></i>
                         <span>Objectifs</span>
                     </a>
-                    <a class="nav-link-modern {% if request.endpoint == 'famille' %}active{% endif %}" href="{{ url_for('famille') }}">
+                    <a class="nav-link-modern {% if request.endpoint == 'famille' %}active{% endif %}" href="{{ url_for('famille') }}" title="Gestion familiale">
                         <i class="bi bi-people-fill"></i>
                         <span>Famille</span>
                     </a>
-                    <a class="nav-link-modern {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+                    <a class="nav-link-modern {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}" title="Tableau de bord">
                         <i class="bi bi-graph-up"></i>
                         <span>Dashboard</span>
                     </a>

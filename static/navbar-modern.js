@@ -2,6 +2,41 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     
+    // ==================== DROPDOWN SECURITY MENU ====================
+    const dropdowns = document.querySelectorAll('.dropdown-modern');
+    
+    dropdowns.forEach(dropdown => {
+        const button = dropdown.querySelector('.nav-link-modern');
+        const menu = dropdown.querySelector('.dropdown-menu-modern');
+        let timeoutId;
+        
+        if (button && menu) {
+            // Show dropdown on hover
+            dropdown.addEventListener('mouseenter', function() {
+                clearTimeout(timeoutId);
+                menu.style.opacity = '1';
+                menu.style.visibility = 'visible';
+                menu.style.transform = 'translateY(0)';
+                menu.style.pointerEvents = 'auto';
+            });
+            
+            // Hide dropdown with delay
+            dropdown.addEventListener('mouseleave', function() {
+                timeoutId = setTimeout(() => {
+                    menu.style.opacity = '0';
+                    menu.style.visibility = 'hidden';
+                    menu.style.transform = 'translateY(-10px)';
+                    menu.style.pointerEvents = 'none';
+                }, 200);
+            });
+            
+            // Keep dropdown open when hovering menu
+            menu.addEventListener('mouseenter', function() {
+                clearTimeout(timeoutId);
+            });
+        }
+    });
+    
     // ==================== MOBILE MENU TOGGLE ====================
     const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
     const mobileMenu = document.querySelector('.mobile-menu');
