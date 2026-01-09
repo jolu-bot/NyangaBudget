@@ -3897,6 +3897,16 @@ def ratelimit_handler(e):
     return redirect(url_for('login')), 429
 
 
+# ==================== API REST JWT ====================
+
+# Importer et initialiser l'API REST
+from api_rest import init_jwt
+
+jwt = init_jwt(app, db, User, Depense, Revenu, Categorie, Compte)
+
+print("[OK] API REST JWT initialisee sur /api/v1")
+
+
 # ==================== POINT D'ENTRÉE ====================
 
 if __name__ == '__main__':
@@ -3912,7 +3922,7 @@ if __name__ == '__main__':
         print("URL: http://localhost:5000")
         print("Compte admin: admin@nyanga.cm / admin123")
         print("Dashboard: http://localhost:5000/dashboard")
-        print("API REST: http://localhost:5000/api/stats")
+        print("API REST: http://localhost:5000/api/v1/auth/login")
         print("=" * 50 + "\n")
 
     # Désactiver le reloader en développement pour éviter les crashes
