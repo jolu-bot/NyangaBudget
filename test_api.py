@@ -103,14 +103,15 @@ class APITester:
         self.log("\n[TEST 4] Création catégorie")
 
         headers = {"Authorization": f"Bearer {self.access_token}"}
-        response = requests.post(f"{self.base_url}/categories",
-                                 headers=headers,
-                                 json={
-                                     "nom": "Test Alimentation",
-                                     "type": "depense",
-                                     "couleur": "#ff6b6b",
-                                     "icon": "bi-cart"
-                                 })
+        response = requests.post(
+            f"{self.base_url}/categories",
+            headers=headers,
+            json={
+                "nom": "Test Alimentation",
+                "type": "depense",
+                "couleur": "#ff6b6b",
+                "icon": "bi-cart"
+            })
 
         if response.status_code == 201:
             data = response.json()
@@ -141,15 +142,16 @@ class APITester:
         self.log("\n[TEST 6] Création dépense")
 
         headers = {"Authorization": f"Bearer {self.access_token}"}
-        response = requests.post(f"{self.base_url}/depenses",
-                                 headers=headers,
-                                 json={
-                                     "nom": "Test Courses",
-                                     "montant": 15000,
-                                     "date": datetime.now().strftime('%Y-%m-%d'),
-                                     "categorie_id": self.test_categorie_id,
-                                     "notes": "Dépense de test"
-                                 })
+        response = requests.post(
+            f"{self.base_url}/depenses",
+            headers=headers,
+            json={
+                "nom": "Test Courses",
+                "montant": 15000,
+                "date": datetime.now().strftime('%Y-%m-%d'),
+                "categorie_id": self.test_categorie_id,
+                "notes": "Dépense de test"
+            })
 
         if response.status_code == 201:
             data = response.json()
@@ -220,14 +222,15 @@ class APITester:
         self.log("\n[TEST 10] Création revenu")
 
         headers = {"Authorization": f"Bearer {self.access_token}"}
-        response = requests.post(f"{self.base_url}/revenus",
-                                 headers=headers,
-                                 json={
-                                     "source": "Test Salaire",
-                                     "montant": 500000,
-                                     "date": datetime.now().strftime('%Y-%m-%d'),
-                                     "recurrent": True
-                                 })
+        response = requests.post(
+            f"{self.base_url}/revenus",
+            headers=headers,
+            json={
+                "source": "Test Salaire",
+                "montant": 500000,
+                "date": datetime.now().strftime('%Y-%m-%d'),
+                "recurrent": True
+            })
 
         if response.status_code == 201:
             data = response.json()
