@@ -12,28 +12,31 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (button && menu) {
             // Show dropdown on hover
-            dropdown.addEventListener('mouseenter', function() {
+            const showDropdown = () => {
                 clearTimeout(timeoutId);
                 menu.style.opacity = '1';
                 menu.style.visibility = 'visible';
                 menu.style.transform = 'translateY(0)';
                 menu.style.pointerEvents = 'auto';
-            });
+                menu.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            };
             
             // Hide dropdown with delay
-            dropdown.addEventListener('mouseleave', function() {
+            const hideDropdown = () => {
                 timeoutId = setTimeout(() => {
                     menu.style.opacity = '0';
                     menu.style.visibility = 'hidden';
                     menu.style.transform = 'translateY(-10px)';
                     menu.style.pointerEvents = 'none';
-                }, 200);
-            });
+                    menu.style.transition = 'opacity 0.3s ease, transform 0.3s ease, visibility 0s linear 0.3s';
+                }, 300);
+            };
             
-            // Keep dropdown open when hovering menu
-            menu.addEventListener('mouseenter', function() {
-                clearTimeout(timeoutId);
-            });
+            dropdown.addEventListener('mouseenter', showDropdown);
+            dropdown.addEventListener('mouseleave', hideDropdown);
+            button.addEventListener('mouseenter', showDropdown);
+            menu.addEventListener('mouseenter', () => clearTimeout(timeoutId));
+            menu.addEventListener('mouseleave', hideDropdown);
         }
     });
     
