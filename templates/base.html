@@ -44,17 +44,6 @@
                     <span class="brand-text">NyangaBudget</span>
                 </a>
 
-                <!-- Search Bar (Desktop) -->
-                <div class="search-bar-modern d-none d-lg-flex">
-                    <i class="bi bi-search search-icon"></i>
-                    <input type="text"
-                           class="search-input"
-                           placeholder="Rechercher..."
-                           id="globalSearch"
-                           autocomplete="off">
-                    <div class="search-results" id="searchResults"></div>
-                </div>
-
                 <!-- Navigation Links (Desktop) -->
                 <div class="nav-links-modern d-none d-lg-flex">
                     <a class="nav-link-modern {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}" title="Page d'accueil">
@@ -130,6 +119,11 @@
                     <button class="action-btn" onclick="afficherScoreSante()" title="Score de Santé Financière">
                         <i class="bi bi-heart-pulse-fill"></i>
                     </button>
+                    
+                    <!-- Search Button -->
+                    <button class="action-btn" id="searchToggle" title="Rechercher">
+                        <i class="bi bi-search"></i>
+                    </button>
 
                     <!-- User Menu -->
                     <div class="dropdown-modern">
@@ -160,6 +154,29 @@
                         <span></span>
                         <span></span>
                     </button>
+                </div>
+            </div>
+
+            <!-- Search Modal (Global) -->
+            <div class="search-modal" id="searchModal">
+                <div class="search-modal-content">
+                    <button class="search-modal-close" id="searchModalClose">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                    <div class="search-modal-header">
+                        <i class="bi bi-search"></i>
+                        <h3>Recherche globale</h3>
+                    </div>
+                    <div class="search-bar-modern">
+                        <i class="bi bi-search search-icon"></i>
+                        <input type="text"
+                               class="search-input"
+                               placeholder="Rechercher dans vos finances..."
+                               id="globalSearch"
+                               autocomplete="off"
+                               autofocus>
+                        <div class="search-results" id="searchResults"></div>
+                    </div>
                 </div>
             </div>
 
