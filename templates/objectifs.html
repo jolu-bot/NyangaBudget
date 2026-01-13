@@ -2,18 +2,125 @@
 
 {% block title %}Objectifs Financiers - NyangaBudget{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='forms-modern.css') }}">
+<style>
+.objectif-card {
+    background: var(--glass-bg);
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px var(--glass-shadow);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    height: 100%;
+    position: relative;
+}
+
+.objectif-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 12px 40px var(--glass-shadow);
+}
+
+.objectif-card-border {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+}
+
+.objectif-card-body {
+    padding: 2rem;
+    position: relative;
+}
+
+.objectif-icon-badge {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: inline-block;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+}
+
+.objectif-progress-modern {
+    height: 28px;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    position: relative;
+}
+
+[data-theme="dark"] .objectif-progress-modern {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.objectif-progress-bar {
+    height: 100%;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: white;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.objectif-progress-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer 2.5s infinite;
+}
+
+.objectif-montant {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0.5rem 0;
+}
+
+.badge-atteint {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.btn-contribuer {
+    background: transparent;
+    border: 2px solid currentColor;
+    border-radius: 10px;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.btn-contribuer:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="mb-4">
-    <h2 class="text-primary">
+<div class="dashboard-header mb-4">
+    <h2>
         <i class="bi bi-trophy me-2"></i>Mes Objectifs d'Épargne
     </h2>
-    <p class="text-muted">Suivez vos objectifs financiers et atteignez vos rêves</p>
+    <p>Suivez vos objectifs financiers et atteignez vos rêves</p>
 </div>
 
 <!-- Bouton Ajouter un objectif -->
 <div class="mb-4">
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addObjectifModal">
-        <i class="bi bi-plus-circle me-2"></i>Nouvel objectif
+    <button class="btn-modern btn-modern-primary" data-bs-toggle="modal" data-bs-target="#addObjectifModal">
+        <i class="bi bi-plus-circle"></i>Nouvel objectif
     </button>
 </div>
 
@@ -21,26 +128,29 @@
 <div class="row">
     {% if objectifs_data %}
         {% for objectif in objectifs_data %}
-        <div class="col-lg-6 mb-4">
-            <div class="card shadow-sm h-100" style="border-left: 5px solid {{ objectif.couleur }};">
-                <div class="card-body">
+        <div class="col-lg-6 mb-4 animate-fade-in">
+            <div class="objectif-card">
+                <div class="objectif-card-border" style="background: {{ objectif.couleur }};"></div>
+                <div class="objectif-card-body">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div class="flex-grow-1">
-                            <h5 class="card-title mb-1">
-                                <span style="font-size: 1.5rem;">{{ objectif.icone }}</span>
+                            <div class="objectif-icon-badge">{{ objectif.icone }}</div>
+                            <h5 class="mb-2" style="font-weight: 700; font-size: 1.3rem;">
                                 {{ objectif.titre }}
                                 {% if objectif.est_atteint %}
-                                <span class="badge bg-success">Atteint ✓</span>
+                                <span class="badge-atteint">✓ Atteint</span>
                                 {% endif %}
                             </h5>
-                            <p class="text-muted mb-3">{{ objectif.description }}</p>
+                            {% if objectif.description %}
+                            <p class="text-muted mb-3" style="font-size: 0.95rem;">{{ objectif.description }}</p>
+                            {% endif %}
                         </div>
                         <div>
                             <form method="POST" action="{{ url_for('delete_objectif', id=objectif.id) }}"
                                   style="display: inline;"
                                   onsubmit="return confirm('Supprimer cet objectif ?');">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                <button type="submit" class="btn-delete-modern" title="Supprimer" style="padding: 0.4rem 0.7rem;">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
@@ -48,36 +158,37 @@
                     </div>
 
                     <!-- Barre de progression -->
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <small class="text-muted">Progression</small>
-                            <small>
-                                <strong style="color: {{ objectif.couleur }};">{{ objectif.pourcentage }}%</strong>
-                            </small>
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span style="font-size: 0.9rem; color: #6b7280; font-weight: 600;">Progression</span>
+                            <span class="objectif-montant" style="color: {{ objectif.couleur }};">{{ objectif.pourcentage }}%</span>
                         </div>
-                        <div class="progress" style="height: 25px;">
-                            <div class="progress-bar {% if objectif.pourcentage < 100 %}progress-bar-striped progress-bar-animated{% endif %}"
-                                 role="progressbar"
-                                 style="width: {{ objectif.pourcentage if objectif.pourcentage <= 100 else 100 }}%; background-color: {{ objectif.couleur }};"
-                                 aria-valuenow="{{ objectif.pourcentage }}" aria-valuemin="0" aria-valuemax="100">
+                        <div class="objectif-progress-modern">
+                            <div class="objectif-progress-bar {% if objectif.pourcentage < 100 %}progress-bar-striped progress-bar-animated{% endif %}"
+                                 style="width: {{ objectif.pourcentage if objectif.pourcentage <= 100 else 100 }}%; background: {{ objectif.couleur }};">
                                 {{ objectif.pourcentage }}%
                             </div>
                         </div>
                     </div>
 
                     <!-- Montants -->
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
-                            <small class="text-muted d-block">Montant actuel</small>
-                            <strong class="fs-5" style="color: {{ objectif.couleur }};">
-                                {{ "{:,.0f}".format(objectif.montant_actuel) }} FCFA
-                            </strong>
+                            <small class="text-muted d-block" style="font-size: 0.85rem;">Montant actuel</small>
+                            <div class="objectif-montant" style="color: {{ objectif.couleur }};">
+                                {{ "{:,.0f}".format(objectif.montant_actuel) }}
+                            </div>
+                            <small class="text-muted">FCFA</small>
+                        </div>
+                        <div class="text-center" style="opacity: 0.5;">
+                            <i class="bi bi-arrow-right" style="font-size: 1.5rem;"></i>
                         </div>
                         <div class="text-end">
-                            <small class="text-muted d-block">Objectif</small>
-                            <strong class="fs-5 text-primary">
-                                {{ "{:,.0f}".format(objectif.montant_cible) }} FCFA
-                            </strong>
+                            <small class="text-muted d-block" style="font-size: 0.85rem;">Objectif</small>
+                            <div class="objectif-montant" style="color: #3b82f6;">
+                                {{ "{:,.0f}".format(objectif.montant_cible) }}
+                            </div>
+                            <small class="text-muted">FCFA</small>
                         </div>
                     </div>
 
@@ -85,21 +196,22 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             {% if objectif.date_limite %}
-                            <span class="badge bg-secondary">
+                            <span class="badge" style="background: rgba(0,0,0,0.05); color: #6b7280; padding: 0.5rem 0.75rem; border-radius: 10px;">
                                 <i class="bi bi-calendar-event me-1"></i>
                                 {% if objectif.jours_restants > 0 %}
-                                    {{ objectif.jours_restants }} jour(s) restant(s)
+                                    {{ objectif.jours_restants }}j restant(s)
                                 {% elif objectif.jours_restants == 0 %}
                                     Aujourd'hui
                                 {% else %}
-                                    Échéance dépassée
+                                    Échu
                                 {% endif %}
                             </span>
                             {% endif %}
                         </div>
                         <div>
                             {% if not objectif.est_atteint %}
-                            <button class="btn btn-sm btn-outline-primary"
+                            <button class="btn-contribuer"
+                                    style="color: {{ objectif.couleur }}; border-color: {{ objectif.couleur }};"
                                     data-bs-toggle="modal"
                                     data-bs-target="#contributeModal{{ objectif.id }}">
                                 <i class="bi bi-plus-circle me-1"></i>Contribuer
@@ -134,10 +246,10 @@
                             </div>
 
                             <div class="mb-3">
-                                <label for="montant_contribution{{ objectif.id }}" class="form-label">
-                                    Montant de la contribution (FCFA)
+                                <label for="montant_contribution{{ objectif.id }}" class="form-label-modern">
+                                    <i class="bi bi-cash-stack"></i>Montant de la contribution (FCFA)
                                 </label>
-                                <input type="number" class="form-control" id="montant_contribution{{ objectif.id }}"
+                                <input type="number" class="form-control form-control-modern" id="montant_contribution{{ objectif.id }}"
                                        name="montant" step="1" min="1"
                                        placeholder="Ex: 10000" required>
                                 <small class="text-muted">
@@ -146,10 +258,10 @@
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                            <button type="submit" class="btn btn-primary"
-                                    style="background-color: {{ objectif.couleur }}; border-color: {{ objectif.couleur }};">
-                                <i class="bi bi-check-circle me-2"></i>Contribuer
+                            <button type="button" class="btn-modern btn-modern-outline" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn-modern"
+                                    style="background: {{ objectif.couleur }}; color: white; box-shadow: 0 4px 12px {{ objectif.couleur }}40;">
+                                <i class="bi bi-check-circle"></i>Contribuer
                             </button>
                         </div>
                     </form>
@@ -159,13 +271,13 @@
         {% endfor %}
     {% else %}
         <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-body text-center py-5">
-                    <i class="bi bi-trophy" style="font-size: 3rem; color: #ddd;"></i>
-                    <p class="text-muted mt-3">Aucun objectif défini pour le moment.</p>
+            <div class="list-card-modern">
+                <div class="empty-state-modern">
+                    <i class="bi bi-trophy"></i>
+                    <p class="mt-3">Aucun objectif défini pour le moment.</p>
                     <p class="small">Créez votre premier objectif d'épargne pour atteindre vos rêves.</p>
-                    <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#addObjectifModal">
-                        <i class="bi bi-plus-circle me-2"></i>Créer mon premier objectif
+                    <button class="btn-modern btn-modern-primary mt-3" data-bs-toggle="modal" data-bs-target="#addObjectifModal">
+                        <i class="bi bi-plus-circle"></i>Créer mon premier objectif
                     </button>
                 </div>
             </div>
@@ -188,34 +300,44 @@
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="titre" class="form-label">Titre de l'objectif</label>
-                            <input type="text" class="form-control" id="titre" name="titre"
+                            <label for="titre" class="form-label-modern">
+                                <i class="bi bi-trophy"></i>Titre de l'objectif
+                            </label>
+                            <input type="text" class="form-control form-control-modern" id="titre" name="titre"
                                    placeholder="Ex: Nouvelle voiture" required>
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label for="montant_cible" class="form-label">Montant cible (FCFA)</label>
-                            <input type="number" class="form-control" id="montant_cible" name="montant_cible"
+                            <label for="montant_cible" class="form-label-modern">
+                                <i class="bi bi-cash-stack"></i>Montant cible (FCFA)
+                            </label>
+                            <input type="number" class="form-control form-control-modern" id="montant_cible" name="montant_cible"
                                    step="1" min="1" placeholder="Ex: 5000000" required>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description"
+                        <label for="description" class="form-label-modern">
+                            <i class="bi bi-pencil"></i>Description
+                        </label>
+                        <textarea class="form-control form-control-modern" id="description" name="description"
                                   rows="2" placeholder="Décrivez votre objectif..."></textarea>
                     </div>
 
                     <div class="row">
                         <div class="col-md-4 mb-3">
-                            <label for="date_limite" class="form-label">Date limite (optionnel)</label>
-                            <input type="date" class="form-control" id="date_limite" name="date_limite">
-                            <small class="text-muted">Laissez vide si pas de deadline</small>
+                            <label for="date_limite" class="form-label-modern">
+                                <i class="bi bi-calendar3"></i>Date limite
+                            </label>
+                            <input type="date" class="form-control form-control-modern" id="date_limite" name="date_limite">
+                            <small class="text-muted">Optionnel</small>
                         </div>
 
                         <div class="col-md-4 mb-3">
-                            <label for="icone" class="form-label">Icône</label>
-                            <select class="form-select" id="icone" name="icone" required
+                            <label for="icone" class="form-label-modern">
+                                <i class="bi bi-emoji-smile"></i>Icône
+                            </label>
+                            <select class="form-select form-control-modern" id="icone" name="icone" required
                                     style="font-size: 1.2rem;">
                                 <option value="🏠">🏠 Maison</option>
                                 <option value="🚗" selected>🚗 Voiture</option>
@@ -233,23 +355,25 @@
                         </div>
 
                         <div class="col-md-4 mb-3">
-                            <label for="couleur" class="form-label">Couleur</label>
-                            <input type="color" class="form-control form-control-color w-100"
-                                   id="couleur" name="couleur" value="#0d6efd" required>
-                            <small class="text-muted">Choisissez une couleur personnalisée</small>
+                            <label for="couleur" class="form-label-modern">
+                                <i class="bi bi-palette"></i>Couleur
+                            </label>
+                            <input type="color" class="form-control form-control-modern"
+                                   id="couleur" name="couleur" value="#0d6efd" required
+                                   style="height: 50px; cursor: pointer;">
                         </div>
                     </div>
 
-                    <div class="alert alert-info mb-0">
+                    <div class="info-card-modern mb-0">
                         <i class="bi bi-lightbulb me-2"></i>
                         <strong>Astuce:</strong> Définissez des objectifs réalistes et suivez régulièrement
                         votre progression pour rester motivé!
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-circle me-2"></i>Créer l'objectif
+                    <button type="button" class="btn-modern btn-modern-outline" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn-modern btn-modern-primary">
+                        <i class="bi bi-check-circle"></i>Créer l'objectif
                     </button>
                 </div>
             </form>
