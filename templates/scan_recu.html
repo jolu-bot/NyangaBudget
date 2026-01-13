@@ -2,190 +2,362 @@
 
 {% block title %}Scanner Reçu - NyangaBudget{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='forms-modern.css') }}">
+<style>
+.upload-container {
+    background: var(--glass-bg);
+    border-radius: 24px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px var(--glass-shadow);
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+}
+
+.drag-drop-zone {
+    border: 3px dashed rgba(59, 130, 246, 0.3);
+    border-radius: 20px;
+    padding: 3rem 2rem;
+    text-align: center;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(37, 99, 235, 0.02));
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+}
+
+.drag-drop-zone:hover {
+    border-color: rgba(59, 130, 246, 0.6);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.05));
+    transform: scale(1.02);
+}
+
+.drag-drop-zone.drag-over {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.1));
+    transform: scale(1.05);
+}
+
+.upload-icon {
+    font-size: 4rem;
+    color: #3b82f6;
+    margin-bottom: 1rem;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+.upload-text {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #3b82f6;
+    margin-bottom: 0.5rem;
+}
+
+.upload-hint {
+    color: #6b7280;
+    font-size: 0.95rem;
+}
+
+[data-theme="dark"] .upload-hint {
+    color: #9ca3af;
+}
+
+#preview-container {
+    margin-top: 1.5rem;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    display: none;
+    position: relative;
+}
+
+#preview-img {
+    max-height: 400px;
+    width: 100%;
+    object-fit: contain;
+    background: rgba(0,0,0,0.02);
+}
+
+[data-theme="dark"] #preview-img {
+    background: rgba(255,255,255,0.02);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.stat-box {
+    text-align: center;
+    padding: 1.5rem;
+    background: var(--glass-bg);
+    border-radius: 16px;
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s;
+}
+
+.stat-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 24px var(--glass-shadow);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+[data-theme="dark"] .stat-label {
+    color: #9ca3af;
+}
+
+.info-steps {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+}
+
+.info-steps li {
+    padding: 0.75rem 0;
+    padding-left: 2rem;
+    position: relative;
+    font-size: 0.95rem;
+    color: #4b5563;
+}
+
+[data-theme="dark"] .info-steps li {
+    color: #d1d5db;
+}
+
+.info-steps li::before {
+    content: attr(data-step);
+    position: absolute;
+    left: 0;
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.ocr-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.ocr-badge.success {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(22, 163, 74, 0.1));
+    color: #16a34a;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.ocr-badge.info {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.1));
+    color: #2563eb;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-md-8 mx-auto">
-            <div class="card shadow-lg">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">
-                        <i class="bi bi-upc-scan me-2"></i>
-                        Scanner de Reçus Intelligent
-                    </h4>
-                    <small>Uploadez votre reçu et extrayez les données automatiquement</small>
+<div class="dashboard-header mb-4">
+    <h2>
+        <i class="bi bi-upc-scan me-2"></i>Scanner de Reçus
+    </h2>
+    <p>Uploadez vos reçus et extrayez les données automatiquement</p>
+</div>
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="upload-container animate-fade-in">
+            <div class="form-body-modern">
+                {% if uploaded_file %}
+                <!-- Formulaire d'extraction après upload -->
+                <div class="alert-modern animate-fade-in" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(22, 163, 74, 0.05)); border: 1px solid rgba(34, 197, 94, 0.3); color: #16a34a;">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <strong>Reçu sauvegardé!</strong> Complétez les informations ci-dessous
                 </div>
-                <div class="card-body">
-                    {% if uploaded_file %}
-                    <!-- Formulaire d'extraction après upload -->
-                    <div class="alert alert-success">
-                        <i class="bi bi-check-circle me-2"></i>
-                        Reçu sauvegardé! Complétez les informations ci-dessous:
+                
+                <form method="POST" class="needs-validation mt-4" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="uploaded_file" value="{{ uploaded_file }}"/>
+                    
+                    <div class="mb-3">
+                        <label for="nom" class="form-label-modern">
+                            <i class="bi bi-tag"></i>Description de la dépense *
+                        </label>
+                        <input type="text" 
+                               class="form-control form-control-modern" 
+                               id="nom" 
+                               name="nom" 
+                               value="{{ donnees_ocr.nom if donnees_ocr else '' }}"
+                               placeholder="Ex: Courses au supermarché"
+                               required>
+                        {% if donnees_ocr %}
+                        <small class="ocr-badge success mt-2">
+                            <i class="bi bi-robot"></i>Extrait automatiquement par OCR
+                        </small>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="montant" class="form-label-modern">
+                            <i class="bi bi-cash"></i>Montant (FCFA) *
+                        </label>
+                        <input type="number" 
+                               class="form-control form-control-modern" 
+                               id="montant" 
+                               name="montant" 
+                               value="{{ donnees_ocr.montant if donnees_ocr else '' }}"
+                               step="0.01" 
+                               placeholder="0.00"
+                               required>
+                        {% if donnees_ocr %}
+                        <small class="ocr-badge success mt-2">
+                            <i class="bi bi-robot"></i>Extrait automatiquement par OCR
+                        </small>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="categorie_id" class="form-label-modern">
+                            <i class="bi bi-bookmark"></i>Catégorie
+                        </label>
+                        <select class="form-select form-control-modern" id="categorie_id" name="categorie_id">
+                            <option value="">Sans catégorie</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.id }}">
+                                {{ cat.nom }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn-modern btn-modern-success">
+                            <i class="bi bi-check2-circle"></i>Créer la dépense
+                        </button>
+                        <a href="{{ url_for('scan_recu') }}" class="btn-modern btn-modern-outline">
+                            <i class="bi bi-arrow-counterclockwise"></i>Scanner un autre reçu
+                        </a>
+                    </div>
+                </form>
+                    
+                {% else %}
+                <!-- Formulaire d'upload initial -->
+                <div class="row">
+                    <div class="col-lg-5 mb-4">
+                        <div class="info-card-modern">
+                            <h6>
+                                <i class="bi bi-info-circle"></i>Comment ça marche?
+                            </h6>
+                            <ul class="info-steps">
+                                <li data-step="1">Uploadez une photo/scan de votre reçu</li>
+                                <li data-step="2">Le système sauvegarde le document</li>
+                                <li data-step="3">Les données sont extraites (si OCR activé)</li>
+                                <li data-step="4">La dépense est créée avec le reçu attaché</li>
+                            </ul>
+                        </div>
                     </div>
                     
-                    <form method="POST" class="needs-validation" novalidate>
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        <input type="hidden" name="uploaded_file" value="{{ uploaded_file }}"/>
-                        
-                        <div class="mb-3">
-                            <label for="nom" class="form-label">
-                                <i class="bi bi-tag me-1"></i>
-                                Description de la dépense *
-                            </label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="nom" 
-                                   name="nom" 
-                                   value="{{ donnees_ocr.nom if donnees_ocr else '' }}"
-                                   placeholder="Ex: Courses au supermarché"
-                                   required>
-                            {% if donnees_ocr %}
-                            <small class="text-success">🤖 Extrait automatiquement par OCR</small>
-                            {% else %}
-                            <div class="form-text">Décrivez ce qui apparaît sur le reçu</div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="montant" class="form-label">
-                                <i class="bi bi-cash me-1"></i>
-                                Montant (FCFA) *
-                            </label>
-                            <input type="number" 
-                                   class="form-control" 
-                                   id="montant" 
-                                   name="montant" 
-                                   value="{{ donnees_ocr.montant if donnees_ocr else '' }}"
-                                   step="0.01" 
-                                   placeholder="0.00"
-                                   required>
-                            {% if donnees_ocr %}
-                            <small class="text-success">🤖 Extrait automatiquement par OCR</small>
-                            {% else %}
-                            <div class="form-text">Montant total du reçu</div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="categorie_id" class="form-label">
-                                <i class="bi bi-bookmark me-1"></i>
-                                Catégorie
-                            </label>
-                            <select class="form-select" id="categorie_id" name="categorie_id">
-                                <option value="">Sans catégorie</option>
-                                {% for cat in categories %}
-                                <option value="{{ cat.id }}">
-                                    <i class="{{ cat.icone }}"></i> {{ cat.nom }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-success btn-lg">
-                                <i class="bi bi-check2-circle me-2"></i>
-                                Créer la dépense
-                            </button>
-                            <a href="{{ url_for('scan_recu') }}" class="btn btn-outline-secondary">
-                                <i class="bi bi-arrow-counterclockwise me-1"></i>
-                                Scanner un autre reçu
-                            </a>
-                        </div>
-                    </form>
-                    
-                    {% else %}
-                    <!-- Formulaire d'upload initial -->
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="text-center mb-4">
-                                <i class="bi bi-receipt-cutoff receipt-icon"></i>
-                                <h5 class="mt-3">Comment ça marche?</h5>
-                                <ol class="text-start">
-                                    <li>Uploadez une photo/scan de votre reçu</li>
-                                    <li>Le système sauvegarde le document</li>
-                                    <li>Vous extrayez les données manuellement</li>
-                                    <li>La dépense est créée avec le reçu attaché</li>
-                                </ol>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <form method="POST" enctype="multipart/form-data" id="uploadForm">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="col-lg-7">
+                        <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            
+                            <div class="drag-drop-zone" id="dropZone">
+                                <input type="file" 
+                                       class="d-none" 
+                                       id="receipt_file" 
+                                       name="receipt_file"
+                                       accept="image/*,.pdf">
                                 
-                                <div class="mb-3">
-                                    <label for="receipt_file" class="form-label">
-                                        <i class="bi bi-camera me-1"></i>
-                                        Choisir un reçu *
-                                    </label>
-                                    <input type="file" 
-                                           class="form-control" 
-                                           id="receipt_file" 
-                                           name="receipt_file"
-                                           accept="image/*,.pdf"
-                                           required>
-                                    <div class="form-text">
-                                        Formats acceptés: JPG, PNG, PDF (Max 16MB)
-                                    </div>
+                                <div class="upload-icon">
+                                    <i class="bi bi-cloud-arrow-up"></i>
                                 </div>
-
-                                <div class="d-grid">
-                                    <button type="submit" class="btn btn-primary btn-lg">
-                                        <i class="bi bi-cloud-arrow-up me-2"></i>
-                                        Uploader le reçu
-                                    </button>
+                                <div class="upload-text">Glissez votre reçu ici</div>
+                                <div class="upload-hint">ou cliquez pour sélectionner</div>
+                                <div class="upload-hint mt-2">
+                                    <small>JPG, PNG, PDF • Max 16MB</small>
                                 </div>
-                            </form>
-
-                            <!-- Preview de l'image (optionnel) -->
-                            <div id="preview" class="mt-3 text-center">
-                                <img id="preview-img" src="" class="img-fluid rounded">
                             </div>
-                        </div>
-                    </div>
 
-                    <!-- Message d'information OCR -->
-                    {% if not ocr_enabled %}
-                    <div class="alert alert-info mt-4">
-                        <i class="bi bi-robot me-2"></i>
-                        <strong>🚀 Extraction automatique (OCR) disponible !</strong><br>
-                        Pour activer l'extraction automatique des données de reçus :
-                        <ol class="mt-2 mb-0">
-                            <li>Installez pytesseract : <code>pip install pytesseract</code></li>
-                            <li>Configurez la variable d'environnement : <code>OPENAI_API_KEY=votre_clé</code></li>
-                            <li>Rechargez l'application</li>
-                        </ol>
-                        <small class="text-muted">L'OCR extraira automatiquement le nom, montant et catégorie depuis vos reçus !</small>
+                            <div id="preview-container">
+                                <img id="preview-img" src="" class="img-fluid">
+                            </div>
+
+                            <div class="d-grid mt-3">
+                                <button type="submit" class="btn-modern btn-modern-primary" id="submitBtn" disabled>
+                                    <i class="bi bi-cloud-arrow-up"></i>Uploader le reçu
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                    {% else %}
-                    <div class="alert alert-success mt-4">
-                        <i class="bi bi-check-circle me-2"></i>
-                        <strong>✅ OCR activé !</strong> L'extraction automatique des données est opérationnelle.
-                    </div>
-                    {% endif %}
-                    {% endif %}
                 </div>
+
+                <!-- Message d'information OCR -->
+                {% if not ocr_enabled %}
+                <div class="info-card-modern mt-4" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.05));">
+                    <h6>
+                        <i class="bi bi-robot"></i>🚀 Extraction automatique (OCR) disponible !
+                    </h6>
+                    <p class="mb-2">Pour activer l'extraction automatique des données de reçus :</p>
+                    <ol class="info-steps mb-0">
+                        <li data-step="1">Installez pytesseract: <code>pip install pytesseract</code></li>
+                        <li data-step="2">Configurez: <code>OPENAI_API_KEY=votre_clé</code></li>
+                        <li data-step="3">Rechargez l'application</li>
+                    </ol>
+                    <small class="text-muted d-block mt-2">L'OCR extraira automatiquement le nom, montant et catégorie depuis vos reçus !</small>
+                </div>
+                {% else %}
+                <div class="text-center mt-4">
+                    <span class="ocr-badge success">
+                        <i class="bi bi-check-circle"></i>OCR activé ! Extraction automatique opérationnelle
+                    </span>
+                </div>
+                {% endif %}
+                {% endif %}
             </div>
+        </div>
 
-            <!-- Statistiques reçus scannés -->
-            <div class="card mt-4">
-                <div class="card-header bg-light">
-                    <i class="bi bi-graph-up me-2"></i>
-                    Mes reçus scannés
-                </div>
-                <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-md-4">
-                            <h3 class="text-primary">{{ depenses_avec_recu }}</h3>
-                            <small class="text-muted">Dépenses avec reçu</small>
-                        </div>
-                        <div class="col-md-4">
-                            <h3 class="text-success">{{ montant_total }}</h3>
-                            <small class="text-muted">Total (FCFA)</small>
-                        </div>
-                        <div class="col-md-4">
-                            <h3 class="text-info">{{ pourcentage }}%</h3>
-                            <small class="text-muted">Taux de traçabilité</small>
-                        </div>
+        <!-- Statistiques reçus scannés -->
+        <div class="list-card-modern mt-4 animate-fade-in animate-delay-1">
+            <div class="list-card-header">
+                <h5>
+                    <i class="bi bi-graph-up"></i>Mes reçus scannés
+                </h5>
+            </div>
+            <div class="form-body-modern">
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-number text-primary">{{ depenses_avec_recu }}</div>
+                        <div class="stat-label">Dépenses avec reçu</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number text-success">{{ montant_total }}</div>
+                        <div class="stat-label">Total (FCFA)</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number" style="color: #06b6d4;">{{ pourcentage }}%</div>
+                        <div class="stat-label">Taux de traçabilité</div>
                     </div>
                 </div>
             </div>
@@ -193,34 +365,86 @@
     </div>
 </div>
 
-<style>
-#preview-img {
-    max-height: 300px;
-}
-
-#preview {
-    display: none;
-}
-
-.receipt-icon {
-    font-size: 5rem;
-    color: #0d6efd;
-}
-</style>
-
 <script>
-// Preview de l'image avant upload
-document.getElementById('receipt_file')?.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file && file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('preview-img').src = e.target.result;
-            document.getElementById('preview').style.display = 'block';
-        };
-        reader.readAsDataURL(file);
+// Drag and Drop functionality
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('receipt_file');
+const submitBtn = document.getElementById('submitBtn');
+const previewContainer = document.getElementById('preview-container');
+const previewImg = document.getElementById('preview-img');
+
+if (dropZone && fileInput) {
+    // Click to select file
+    dropZone.addEventListener('click', () => fileInput.click());
+    
+    // Prevent default drag behaviors
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
     }
-});
+    
+    // Highlight drop zone when dragging over
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            dropZone.classList.add('drag-over');
+        });
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            dropZone.classList.remove('drag-over');
+        });
+    });
+    
+    // Handle dropped files
+    dropZone.addEventListener('drop', (e) => {
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            handleFiles(files[0]);
+        }
+    });
+    
+    // Handle selected files
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFiles(e.target.files[0]);
+        }
+    });
+    
+    function handleFiles(file) {
+        if (file) {
+            submitBtn.disabled = false;
+            
+            // Preview image
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImg.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                    
+                    // Update drop zone text
+                    dropZone.querySelector('.upload-text').textContent = 'Fichier sélectionné !';
+                    dropZone.querySelector('.upload-hint').textContent = file.name;
+                    dropZone.querySelector('.upload-icon i').className = 'bi bi-check-circle';
+                    dropZone.style.borderColor = '#22c55e';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                // PDF or other file
+                dropZone.querySelector('.upload-text').textContent = 'PDF sélectionné !';
+                dropZone.querySelector('.upload-hint').textContent = file.name;
+                dropZone.querySelector('.upload-icon i').className = 'bi bi-file-pdf';
+                dropZone.style.borderColor = '#ef4444';
+            }
+        }
+    }
+}
 
 // Validation formulaire Bootstrap
 (function () {
