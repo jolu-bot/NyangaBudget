@@ -227,7 +227,7 @@
                 <h5 class="modal-title">
                     <i class="bi bi-alarm me-2"></i>Nouveau rappel
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
             <form method="POST" action="{{ url_for('add_rappel') }}">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
