@@ -28,6 +28,55 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
+}
+
+/* Classes pour remplacer les styles inline */
+.budget-header-gradient {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.budget-btn-gradient {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.budget-badge {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.form-inline {
+    display: inline;
+}
+
+.btn-compact {
+    padding: 0.4rem 0.7rem;
+}
+
+.text-muted-sm {
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+.text-bold-md {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.text-bold-lg {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.text-muted-xs {
+    font-size: 0.9rem;
+    margin-bottom: 0;
+}
+
+.color-input-lg {
+    height: 50px;
+    cursor: pointer;
+}
     border-bottom: 1px solid var(--glass-border);
 }
 
@@ -198,7 +247,7 @@
     <!-- Formulaire d'ajout de budget -->
     <div class="col-lg-4 mb-4 animate-slide-left">
         <div class="form-card-modern">
-            <div class="form-header-modern" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+            <div class="form-header-modern budget-header-gradient">
                 <h5>
                     <i class="bi bi-plus-circle"></i>Nouveau budget
                 </h5>
@@ -251,7 +300,7 @@
                         <small class="text-muted">Vous serez alerté à ce pourcentage</small>
                     </div>
 
-                    <button type="submit" class="btn-modern w-100" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);">
+                    <button type="submit" class="btn-modern w-100 budget-btn-gradient">
                         <i class="bi bi-plus-circle"></i>Créer le budget
                     </button>
                 </form>
@@ -277,7 +326,7 @@
             <div class="list-card-header">
                 <h5>
                     <i class="bi bi-list-ul"></i>Mes budgets
-                    <span class="list-badge" style="background: linear-gradient(135deg, #f59e0b, #d97706);">{{ budgets_stats|length }}</span>
+                    <span class="list-badge budget-badge">{{ budgets_stats|length }}</span>
                 </h5>
             </div>
             <div class="form-body-modern">
@@ -286,7 +335,7 @@
                     <div class="budget-card">
                         <div class="budget-card-header">
                             <div>
-                                <h5 style="font-weight: 600; margin-bottom: 0.5rem;">
+                                <h5 class="text-bold-lg">
                                     {% if item.budget.categorie %}
                                         <span class="budget-icon" style="background: {{ item.budget.categorie.couleur }}20; color: {{ item.budget.categorie.couleur }};">
                                             <i class="bi {{ item.budget.categorie.icone }}"></i>
@@ -299,17 +348,17 @@
                                         Budget Global
                                     {% endif %}
                                 </h5>
-                                <p class="text-muted mb-0" style="font-size: 0.9rem;">
+                                <p class="text-muted text-muted-xs">
                                     <i class="bi bi-calendar3 me-1"></i>
                                     {{ item.budget.mois }}
                                 </p>
                             </div>
                             <div>
                                 <form method="POST" action="{{ url_for('delete_budget', id=item.budget.id) }}"
-                                      style="display: inline;"
+                                      class="form-inline"
                                       onsubmit="return confirm('Supprimer ce budget ?');">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                    <button type="submit" class="btn-delete-modern" title="Supprimer" style="padding: 0.4rem 0.7rem;">
+                                    <button type="submit" class="btn-delete-modern btn-compact" title="Supprimer">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
@@ -320,8 +369,8 @@
                             <!-- Barre de progression -->
                             <div class="mb-2">
                                 <div class="d-flex justify-content-between mb-2">
-                                    <span style="font-size: 0.9rem; color: #6b7280;">Progression</span>
-                                    <span style="font-size: 1rem; font-weight: 700;" class="text-{{ item.status }}">
+                                    <span class="text-muted-sm">Progression</span>
+                                    <span class="text-bold-md text-{{ item.status }}">
                                         {{ item.pourcentage }}%
                                     </span>
                                 </div>

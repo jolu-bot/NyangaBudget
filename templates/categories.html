@@ -28,6 +28,29 @@
     top: 0;
     left: 0;
     width: 4px;
+}
+
+/* Classes pour remplacer les styles inline */
+.color-input-lg {
+    height: 50px;
+    cursor: pointer;
+}
+
+.link-primary {
+    color: #3b82f6;
+}
+
+.form-inline {
+    display: inline;
+}
+
+.btn-compact {
+    padding: 0.4rem 0.7rem;
+}
+
+.text-bold-lg {
+    font-weight: 600;
+}
     height: 100%;
     border-radius: 16px 0 0 16px;
 }
@@ -139,8 +162,8 @@
                         <label for="couleur" class="form-label-modern">
                             <i class="bi bi-palette"></i>Couleur
                         </label>
-                        <input type="color" class="form-control form-control-modern" id="couleur" name="couleur"
-                               value="#6c757d" title="Choisir une couleur" style="height: 50px; cursor: pointer;">
+                        <input type="color" class="form-control form-control-modern color-input-lg" id="couleur" name="couleur"
+                               value="#6c757d" title="Choisir une couleur">
                     </div>
 
                     <div class="mb-3">
@@ -164,7 +187,7 @@
                             <option value="bi-wallet2">Portefeuille</option>
                         </select>
                         <small class="text-muted">
-                            <a href="https://icons.getbootstrap.com/" target="_blank" rel="noopener" style="color: #3b82f6;">Voir toutes les icônes</a>
+                            <a href="https://icons.getbootstrap.com/" target="_blank" rel="noopener" class="link-primary">Voir toutes les icônes</a>
                         </small>
                     </div>
 
@@ -208,7 +231,7 @@
                                             <div class="category-icon" style="background: {{ item.categorie.couleur }}20; color: {{ item.categorie.couleur }};">
                                                 <i class="bi {{ item.categorie.icone }}"></i>
                                             </div>
-                                            <h5 class="mb-3" style="font-weight: 600;">
+                                            <h5 class="mb-3 text-bold-lg">
                                                 {{ item.categorie.nom }}
                                             </h5>
                                             <div class="category-stats">
@@ -223,10 +246,10 @@
                                         </div>
                                         <div>
                                             <form method="POST" action="{{ url_for('delete_categorie', id=item.categorie.id) }}"
-                                                  style="display: inline;"
+                                                  class="form-inline"
                                                   onsubmit="return confirm('Supprimer cette catégorie ? Les dépenses associées ne seront pas supprimées.');">
                                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                                <button type="submit" class="btn-delete-modern" title="Supprimer" style="padding: 0.4rem 0.7rem;">
+                                                <button type="submit" class="btn-delete-modern btn-compact" title="Supprimer">
                                                     <i class="bi bi-trash"></i>
                                                 </button>
                                             </form>
