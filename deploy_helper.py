@@ -251,11 +251,11 @@ curl https://{username}.pythonanywhere.com
 
 def main():
     """Fonction principale"""
-    print("\n" + "🎯"*30)
-    print(" "*20 + "NYANGABUDGET 2.0")
-    print(" "*15 + "Assistant Déploiement PythonAnywhere")
-    print("🎯"*30)
-    
+    print("\n" + "🎯" * 30)
+    print(" " * 20 + "NYANGABUDGET 2.0")
+    print(" " * 15 + "Assistant Déploiement PythonAnywhere")
+    print("🎯" * 30)
+
     # Menu
     print("\nQue voulez-vous faire ?")
     print("  1. Générer SECRET_KEY")
@@ -267,9 +267,9 @@ def main():
     print("  7. Générer commandes de déploiement")
     print("  8. Tout vérifier (recommandé)")
     print("  0. Quitter")
-    
+
     choice = input("\nVotre choix : ").strip()
-    
+
     if choice == '1':
         generate_secret_key()
     elif choice == '2':
@@ -299,12 +299,12 @@ def main():
         check_directories()
         analyze_requirements()
         check_env_variables()
-        
+
         username = input("\nEntrez votre username PythonAnywhere (optionnel) : ").strip()
         if username:
             generate_wsgi_config(username)
             generate_deployment_commands(username)
-        
+
         print_header("📊 Résumé")
         if files_ok:
             print("✅ Tous les fichiers requis sont présents")
