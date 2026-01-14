@@ -2,141 +2,411 @@
 
 {% block title %}Coffre-Fort Crypté - NyangaBudget{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='forms-modern.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='dashboard-modern.css') }}">
+<style>
+.vault-header {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05));
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.vault-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(239, 68, 68, 0.1), transparent);
+    animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+.vault-card {
+    background: var(--glass-bg);
+    border-radius: 16px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px var(--glass-shadow);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 100%;
+    overflow: hidden;
+}
+
+.vault-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 48px var(--glass-shadow);
+}
+
+.vault-card.critical {
+    border: 2px solid rgba(239, 68, 68, 0.4);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(220, 38, 38, 0.02));
+}
+
+.vault-card-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.vault-card-body {
+    padding: 1.5rem;
+}
+
+.vault-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.vault-icon.document {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.1));
+    color: #3b82f6;
+}
+
+.vault-icon.password {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.1));
+    color: #f59e0b;
+}
+
+.vault-icon.note {
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(14, 165, 233, 0.1));
+    color: #06b6d4;
+}
+
+.vault-icon.pin {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.1));
+    color: #ef4444;
+}
+
+.empty-vault {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--glass-bg);
+    border-radius: 20px;
+    border: 2px dashed var(--glass-border);
+}
+
+.empty-vault-icon {
+    font-size: 5rem;
+    color: #9ca3af;
+    margin-bottom: 1.5rem;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-15px); }
+}
+
+.security-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.security-badge.aes {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(22, 163, 74, 0.1));
+    color: #16a34a;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.security-badge.critical {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1));
+    color: #dc2626;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.vault-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #6b7280;
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+}
+
+[data-theme="dark"] .vault-meta {
+    color: #9ca3af;
+}
+
+.vault-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.modal-modern .modal-content {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.modal-modern .modal-header {
+    border-bottom: 1px solid var(--glass-border);
+    padding: 1.5rem 2rem;
+}
+
+.modal-modern .modal-body {
+    padding: 2rem;
+}
+
+.modal-modern .modal-footer {
+    border-top: 1px solid var(--glass-border);
+    padding: 1.5rem 2rem;
+}
+
+.file-drop-zone {
+    border: 2px dashed rgba(59, 130, 246, 0.3);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(37, 99, 235, 0.02));
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.file-drop-zone:hover {
+    border-color: rgba(59, 130, 246, 0.6);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.05));
+}
+
+.file-drop-zone.drag-over {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.1));
+    transform: scale(1.02);
+}
+
+.content-preview {
+    background: rgba(0,0,0,0.02);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+[data-theme="dark"] .content-preview {
+    background: rgba(255,255,255,0.02);
+}
+
+.content-preview pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="mb-4">
-    <h2 class="text-primary">
-        <i class="bi bi-shield-lock me-2"></i>Coffre-Fort Numérique (Crypté AES-256)
+<div class="dashboard-header mb-4">
+    <h2>
+        <i class="bi bi-shield-lock me-2"></i>Coffre-Fort Numérique
     </h2>
-    <p class="text-muted">Stockez vos documents sensibles en toute sécurité</p>
+    <p>Stockez vos documents sensibles avec cryptage AES-256</p>
 </div>
 
-<div class="row">
-    <!-- Bouton d'ajout -->
-    <div class="col-12 mb-4">
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCoffreModal">
-            <i class="bi bi-plus-circle me-2"></i>Ajouter un document
-        </button>
+<div class="vault-header animate-fade-in">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h4>
+                <i class="bi bi-shield-check me-2" style="color: #16a34a;"></i>
+                Protection AES-256 activée
+            </h4>
+            <p class="mb-0 text-muted">
+                Tous vos documents sont cryptés avec le standard militaire AES-256.
+                Vos données sont en sécurité.
+            </p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <button type="button" class="btn-modern btn-modern-danger" data-bs-toggle="modal" data-bs-target="#addCoffreModal">
+                <i class="bi bi-plus-circle me-2"></i>Ajouter un document
+            </button>
+        </div>
     </div>
+</div>
 
-    <!-- Liste des documents -->
-    <div class="col-12">
-        {% if documents %}
-            <div class="row">
-                {% for doc in documents %}
-                <div class="col-md-6 col-lg-4 mb-3">
-                    <div class="card shadow-sm h-100 {% if doc.est_critique %}border-danger{% endif %}">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <h5 class="card-title mb-0">
-                                    {% if doc.type_document == 'document' %}
-                                        <i class="bi bi-file-earmark-text text-primary me-2"></i>
-                                    {% elif doc.type_document == 'mot_de_passe' %}
-                                        <i class="bi bi-key text-warning me-2"></i>
-                                    {% elif doc.type_document == 'note' %}
-                                        <i class="bi bi-sticky text-info me-2"></i>
-                                    {% elif doc.type_document == 'code_pin' %}
-                                        <i class="bi bi-lock text-danger me-2"></i>
-                                    {% else %}
-                                        <i class="bi bi-file-earmark text-secondary me-2"></i>
-                                    {% endif %}
-                                    {{ doc.titre }}
-                                </h5>
-                                {% if doc.est_critique %}
-                                <span class="badge bg-danger">Critique</span>
-                                {% endif %}
-                            </div>
-
-                            <div class="mb-3">
-                                <small class="text-muted d-block">
-                                    <i class="bi bi-tag me-1"></i>
-                                    Type:
-                                    {% if doc.type_document == 'document' %}Document
-                                    {% elif doc.type_document == 'mot_de_passe' %}Mot de passe
-                                    {% elif doc.type_document == 'note' %}Note
-                                    {% elif doc.type_document == 'code_pin' %}Code PIN
-                                    {% else %}{{ doc.type_document }}
-                                    {% endif %}
-                                </small>
-                                <small class="text-muted d-block">
-                                    <i class="bi bi-calendar3 me-1"></i>
-                                    {{ doc.date_ajout.strftime('%d/%m/%Y %H:%M') }}
-                                </small>
-                            </div>
-
-                            <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-primary"
-                                        onclick="viewDocument({{ doc.id }})">
-                                    <i class="bi bi-eye me-1"></i>Voir
-                                </button>
-                                <form method="POST" action="{{ url_for('delete_coffre', id=doc.id) }}"
-                                      style="display: inline;"
-                                      onsubmit="return confirm('Supprimer ce document ?');">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
+<!-- Liste des documents -->
+<div class="row">
+    {% if documents %}
+        {% for doc in documents %}
+        <div class="col-md-6 col-xl-4 mb-4 animate-fade-in animate-delay-{{ loop.index % 3 }}">
+            <div class="vault-card {% if doc.est_critique %}critical{% endif %}">
+                <div class="vault-card-header">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="vault-icon {% if doc.type_document == 'document' %}document{% elif doc.type_document == 'mot_de_passe' %}password{% elif doc.type_document == 'note' %}note{% elif doc.type_document == 'code_pin' %}pin{% endif %}">
+                            {% if doc.type_document == 'document' %}
+                                <i class="bi bi-file-earmark-text"></i>
+                            {% elif doc.type_document == 'mot_de_passe' %}
+                                <i class="bi bi-key"></i>
+                            {% elif doc.type_document == 'note' %}
+                                <i class="bi bi-sticky"></i>
+                            {% elif doc.type_document == 'code_pin' %}
+                                <i class="bi bi-lock"></i>
+                            {% else %}
+                                <i class="bi bi-file-earmark"></i>
+                            {% endif %}
                         </div>
+                        {% if doc.est_critique %}
+                        <span class="security-badge critical">
+                            <i class="bi bi-exclamation-triangle"></i>Critique
+                        </span>
+                        {% endif %}
+                    </div>
+                    <h5 class="mb-2 mt-3">{{ doc.titre }}</h5>
+                </div>
+                
+                <div class="vault-card-body">
+                    <div class="vault-meta">
+                        <i class="bi bi-tag"></i>
+                        <span>
+                            {% if doc.type_document == 'document' %}Document
+                            {% elif doc.type_document == 'mot_de_passe' %}Mot de passe
+                            {% elif doc.type_document == 'note' %}Note
+                            {% elif doc.type_document == 'code_pin' %}Code PIN
+                            {% else %}{{ doc.type_document }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="vault-meta">
+                        <i class="bi bi-calendar3"></i>
+                        <span>{{ doc.date_ajout.strftime('%d/%m/%Y %H:%M') }}</span>
+                    </div>
+                    
+                    <div class="vault-actions">
+                        <button type="button" 
+                                class="btn-modern btn-modern-primary" 
+                                style="flex: 1;"
+                                onclick="viewDocument({{ doc.id }})">
+                            <i class="bi bi-eye me-1"></i>Voir
+                        </button>
+                        <form method="POST" 
+                              action="{{ url_for('delete_coffre', id=doc.id) }}"
+                              style="display: inline;"
+                              onsubmit="return confirm('Supprimer ce document crypté ?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn-modern btn-modern-danger">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
                     </div>
                 </div>
-                {% endfor %}
             </div>
-        {% else %}
-            <div class="card shadow-sm">
-                <div class="card-body text-center text-muted py-5">
-                    <i class="bi bi-safe" style="font-size: 3rem;"></i>
-                    <p class="mt-3">Votre coffre-fort est vide.</p>
-                    <p class="small">Ajoutez vos documents sensibles pour les protéger avec un cryptage AES-256.</p>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="empty-vault animate-fade-in">
+                <div class="empty-vault-icon">
+                    <i class="bi bi-safe"></i>
                 </div>
+                <h4>Votre coffre-fort est vide</h4>
+                <p class="text-muted mb-4">
+                    Ajoutez vos documents sensibles pour les protéger avec un cryptage AES-256.<br>
+                    Mots de passe, codes PIN, notes confidentielles, documents importants...
+                </p>
+                <button type="button" class="btn-modern btn-modern-primary" data-bs-toggle="modal" data-bs-target="#addCoffreModal">
+                    <i class="bi bi-plus-circle me-2"></i>Ajouter mon premier document
+                </button>
             </div>
-        {% endif %}
-    </div>
+        </div>
+    {% endif %}
 </div>
 
 <!-- Modal d'ajout de document -->
-<div class="modal fade" id="addCoffreModal" tabindex="-1" aria-labelledby="addCoffreModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<div class="modal fade modal-modern" id="addCoffreModal" tabindex="-1" aria-labelledby="addCoffreModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="addCoffreModalLabel">
-                    <i class="bi bi-plus-circle me-2"></i>Ajouter un document
+                    <i class="bi bi-shield-lock me-2"></i>Ajouter un document sécurisé
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="POST" action="{{ url_for('add_coffre') }}" enctype="multipart/form-data">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="titre" class="form-label">Titre <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="titre" name="titre" required>
+                        <label for="titre" class="form-label-modern">
+                            <i class="bi bi-pencil"></i>Titre *
+                        </label>
+                        <input type="text" 
+                               class="form-control form-control-modern" 
+                               id="titre" 
+                               name="titre" 
+                               placeholder="Ex: Carte d'identité, Code WiFi..."
+                               required>
                     </div>
 
                     <div class="mb-3">
-                        <label for="type_document" class="form-label">Type de document</label>
-                        <select class="form-select" id="type_document" name="type_document">
-                            <option value="document">Document</option>
-                            <option value="mot_de_passe">Mot de passe</option>
-                            <option value="note">Note</option>
-                            <option value="code_pin">Code PIN</option>
+                        <label for="type_document" class="form-label-modern">
+                            <i class="bi bi-tag"></i>Type de document
+                        </label>
+                        <select class="form-select form-control-modern" id="type_document" name="type_document">
+                            <option value="document">📄 Document</option>
+                            <option value="mot_de_passe">🔑 Mot de passe</option>
+                            <option value="note">📝 Note</option>
+                            <option value="code_pin">🔒 Code PIN</option>
                         </select>
                     </div>
 
                     <div class="mb-3">
-                        <label for="contenu" class="form-label">Contenu</label>
-                        <textarea class="form-control" id="contenu" name="contenu" rows="4"
-                                  placeholder="Entrez le contenu texte (mot de passe, note, etc.)"></textarea>
-                        <small class="text-muted">Sera crypté avec AES-256</small>
+                        <label for="contenu" class="form-label-modern">
+                            <i class="bi bi-file-text"></i>Contenu texte
+                        </label>
+                        <textarea class="form-control form-control-modern" 
+                                  id="contenu" 
+                                  name="contenu" 
+                                  rows="4"
+                                  placeholder="Entrez le contenu texte (mot de passe, note, code PIN...)"></textarea>
+                        <small class="security-badge aes mt-2">
+                            <i class="bi bi-shield-check"></i>Sera crypté avec AES-256
+                        </small>
                     </div>
 
                     <div class="mb-3">
-                        <label for="fichier" class="form-label">Fichier (optionnel)</label>
-                        <input type="file" class="form-control" id="fichier" name="fichier">
-                        <small class="text-muted">PDF, images, documents</small>
+                        <label class="form-label-modern">
+                            <i class="bi bi-paperclip"></i>Fichier (optionnel)
+                        </label>
+                        <div class="file-drop-zone" id="fileDropZone">
+                            <input type="file" 
+                                   class="d-none" 
+                                   id="fichier" 
+                                   name="fichier"
+                                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                            <i class="bi bi-cloud-arrow-up" style="font-size: 2rem; color: #3b82f6;"></i>
+                            <p class="mb-1 mt-2">Glissez votre fichier ici</p>
+                            <p class="text-muted small mb-0">ou cliquez pour sélectionner</p>
+                            <p class="text-muted small">PDF, images, documents</p>
+                        </div>
+                        <div id="fileName" class="mt-2 text-muted small"></div>
                     </div>
 
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="est_critique" name="est_critique">
+                        <input class="form-check-input" 
+                               type="checkbox" 
+                               id="est_critique" 
+                               name="est_critique">
                         <label class="form-check-label" for="est_critique">
                             <i class="bi bi-exclamation-triangle text-danger me-1"></i>
                             Marquer comme critique
@@ -144,8 +414,10 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="button" class="btn-modern btn-modern-outline" data-bs-dismiss="modal">
+                        Annuler
+                    </button>
+                    <button type="submit" class="btn-modern btn-modern-danger">
                         <i class="bi bi-shield-lock me-2"></i>Sécuriser
                     </button>
                 </div>
@@ -155,24 +427,27 @@
 </div>
 
 <!-- Modal de visualisation -->
-<div class="modal fade" id="viewDocumentModal" tabindex="-1" aria-labelledby="viewDocumentModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+<div class="modal fade modal-modern" id="viewDocumentModal" tabindex="-1" aria-labelledby="viewDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="viewDocumentModalLabel">
-                    <i class="bi bi-eye me-2"></i>Document
+                    <i class="bi bi-eye me-2"></i>Document décrypté
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="documentContent">
                 <div class="text-center py-4">
                     <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Chargement...</span>
+                        <span class="visually-hidden">Décryptage...</span>
                     </div>
+                    <p class="mt-3 text-muted">Décryptage AES-256 en cours...</p>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                <button type="button" class="btn-modern btn-modern-outline" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>Fermer
+                </button>
             </div>
         </div>
     </div>
@@ -182,56 +457,114 @@
 
 {% block extra_scripts %}
 <script>
+// Drag & Drop pour fichiers
+const dropZone = document.getElementById('fileDropZone');
+const fileInput = document.getElementById('fichier');
+const fileNameDisplay = document.getElementById('fileName');
+
+if (dropZone && fileInput) {
+    dropZone.addEventListener('click', () => fileInput.click());
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            dropZone.classList.add('drag-over');
+        });
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            dropZone.classList.remove('drag-over');
+        });
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            displayFileName(files[0]);
+        }
+    });
+    
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            displayFileName(e.target.files[0]);
+        }
+    });
+    
+    function displayFileName(file) {
+        fileNameDisplay.innerHTML = `
+            <span class="security-badge aes">
+                <i class="bi bi-file-earmark-check"></i>
+                ${file.name} (${(file.size / 1024).toFixed(1)} KB)
+            </span>
+        `;
+    }
+}
+
+// Visualisation de document avec décryptage
 function viewDocument(id) {
     const modal = new bootstrap.Modal(document.getElementById('viewDocumentModal'));
     const content = document.getElementById('documentContent');
 
-    // Afficher le modal avec loader
     modal.show();
     content.innerHTML = `
         <div class="text-center py-4">
             <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Chargement...</span>
+                <span class="visually-hidden">Décryptage...</span>
             </div>
+            <p class="mt-3 text-muted">Décryptage AES-256 en cours...</p>
         </div>
     `;
 
-    // Fetch document
     fetch('{{ url_for("view_coffre", id=0) }}'.replace('0', id))
         .then(res => res.json())
         .then(data => {
             if (data.error) {
                 content.innerHTML = `
-                    <div class="alert alert-danger">
+                    <div class="alert-modern" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05)); border: 1px solid rgba(239, 68, 68, 0.3); color: #dc2626;">
                         <i class="bi bi-exclamation-triangle me-2"></i>${data.error}
                     </div>
                 `;
             } else {
                 let html = `
-                    <div class="mb-3">
-                        <h5>${data.titre}</h5>
-                        <p class="text-muted">
-                            <span class="badge bg-primary">${data.type_document}</span>
-                            ${data.est_critique ? '<span class="badge bg-danger ms-2">Critique</span>' : ''}
-                        </p>
+                    <div class="mb-4">
+                        <h4>${data.titre}</h4>
+                        <div class="d-flex gap-2 align-items-center">
+                            <span class="security-badge aes">
+                                <i class="bi bi-shield-check"></i>Décrypté
+                            </span>
+                            <span class="security-badge" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.1)); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.3);">
+                                ${data.type_document}
+                            </span>
+                            ${data.est_critique ? '<span class="security-badge critical"><i class="bi bi-exclamation-triangle"></i>Critique</span>' : ''}
+                        </div>
                     </div>
                 `;
 
                 if (data.contenu) {
                     html += `
-                        <div class="card bg-light mb-3">
-                            <div class="card-body">
-                                <h6 class="text-muted mb-2">Contenu:</h6>
-                                <pre class="mb-0" style="white-space: pre-wrap;">${data.contenu}</pre>
-                            </div>
+                        <div class="content-preview">
+                            <h6 class="text-muted mb-3">
+                                <i class="bi bi-file-text me-2"></i>Contenu:
+                            </h6>
+                            <pre>${data.contenu}</pre>
                         </div>
                     `;
                 }
 
                 if (data.fichier_url) {
                     html += `
-                        <div class="mt-3">
-                            <a href="${data.fichier_url}" target="_blank" class="btn btn-sm btn-outline-primary">
+                        <div class="mt-4">
+                            <a href="${data.fichier_url}" target="_blank" class="btn-modern btn-modern-primary">
                                 <i class="bi bi-download me-2"></i>Télécharger le fichier
                             </a>
                         </div>
@@ -243,8 +576,8 @@ function viewDocument(id) {
         })
         .catch(error => {
             content.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle me-2"></i>Erreur de chargement
+                <div class="alert-modern" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05)); border: 1px solid rgba(239, 68, 68, 0.3); color: #dc2626;">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Erreur de décryptage
                 </div>
             `;
         });
