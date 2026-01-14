@@ -4,31 +4,33 @@ Script d'aide au déploiement PythonAnywhere
 Génère les configurations nécessaires et vérifie l'environnement
 """
 
-import os
 import sys
 import secrets
 from pathlib import Path
 
+
 def print_header(text):
     """Affiche un header stylisé"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print(f"  {text}")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
+
 
 def generate_secret_key():
     """Génère une SECRET_KEY sécurisée"""
     print_header("🔐 Génération SECRET_KEY")
     key = secrets.token_urlsafe(32)
-    print(f"Votre SECRET_KEY sécurisée :\n")
+    print("Votre SECRET_KEY sécurisée :\n")
     print(f"SECRET_KEY={key}")
     print("\n⚠️  IMPORTANT : Copiez cette clé dans votre fichier .env")
     print("⚠️  Ne partagez JAMAIS cette clé publiquement !")
     return key
 
+
 def check_files():
     """Vérifie la présence des fichiers importants"""
     print_header("📁 Vérification des fichiers")
-    
+
     required_files = [
         'app.py',
         'requirements.txt',
@@ -39,14 +41,14 @@ def check_files():
         'static/dashboard-modern.css',
         'static/forms-modern.css'
     ]
-    
+
     optional_files = [
         '.env',
         'data/nyanga.db'
     ]
-    
+
     all_good = True
-    
+
     print("Fichiers requis :")
     for file in required_files:
         exists = Path(file).exists()
@@ -54,19 +56,20 @@ def check_files():
         print(f"  {status} {file}")
         if not exists:
             all_good = False
-    
+
     print("\nFichiers optionnels (créés au déploiement) :")
     for file in optional_files:
         exists = Path(file).exists()
         status = "✅" if exists else "⚠️ "
         print(f"  {status} {file}")
-    
+
     return all_good
+
 
 def check_directories():
     """Vérifie la présence des dossiers importants"""
     print_header("📂 Vérification des dossiers")
-    
+
     directories = [
         'static',
         'templates',
@@ -77,7 +80,7 @@ def check_directories():
         'uploads/heritage',
         'uploads/receipts'
     ]
-    
+
     for directory in directories:
         path = Path(directory)
         exists = path.exists()
@@ -86,33 +89,35 @@ def check_directories():
         if not exists:
             print(f"      → Créer avec : mkdir -p {directory}")
 
+
 def analyze_requirements():
     """Analyse le fichier requirements.txt"""
     print_header("📦 Analyse des dépendances")
-    
+
     req_file = Path('requirements.txt')
     if not req_file.exists():
         print("❌ requirements.txt introuvable !")
         return
-    
+
     with open(req_file, 'r') as f:
         lines = f.readlines()
-    
+
     packages = [line.strip() for line in lines if line.strip() and not line.startswith('#')]
-    
+
     print(f"Nombre total de packages : {len(packages)}")
     print("\nPackages principaux détectés :")
-    
+
     key_packages = ['Flask', 'SQLAlchemy', 'gunicorn', 'cryptography', 'plotly', 'pytesseract']
     for pkg in key_packages:
         found = any(pkg.lower() in p.lower() for p in packages)
         status = "✅" if found else "⚠️ "
         print(f"  {status} {pkg}")
 
+
 def generate_wsgi_config(username):
     """Génère un template de configuration WSGI"""
     print_header("🌐 Génération configuration WSGI")
-    
+
     wsgi_template = f"""# /var/www/{username}_pythonanywhere_com_wsgi.py
 
 import sys
@@ -142,24 +147,25 @@ from app import app as application
 application.config['DEBUG'] = False
 application.config['ENV'] = 'production'
 """
-    
+
     print("Configuration WSGI générée :")
-    print("\n" + "-"*60)
+    print("\n" + "-" * 60)
     print(wsgi_template)
-    print("-"*60)
-    
+    print("-" * 60)
+
     # Sauvegarder dans un fichier
     output_file = Path('passenger_wsgi_template.py')
     with open(output_file, 'w') as f:
         f.write(wsgi_template)
-    
+
     print(f"\n✅ Template sauvegardé dans : {output_file}")
     print(f"⚠️  Remplacer '{username}' par votre vrai username PythonAnywhere")
+
 
 def check_env_variables():
     """Vérifie les variables d'environnement nécessaires"""
     print_header("🔧 Variables d'environnement requises")
-    
+
     env_vars = {
         'SECRET_KEY': 'Clé secrète Flask (OBLIGATOIRE)',
         'DATABASE_URL': 'URL base de données',
@@ -167,11 +173,11 @@ def check_env_variables():
         'FLASK_DEBUG': 'Mode debug (0 ou False)',
         'MAX_CONTENT_LENGTH': 'Taille max upload (16777216)',
     }
-    
+
     print("Variables à définir dans .env :")
     for var, description in env_vars.items():
         print(f"  • {var:25} → {description}")
-    
+
     print("\nVariables optionnelles :")
     optional = {
         'OPENAI_API_KEY': 'Pour OCR intelligent',
@@ -179,14 +185,15 @@ def check_env_variables():
         'MAIL_USERNAME': 'Email expéditeur',
         'MAIL_PASSWORD': 'Mot de passe email'
     }
-    
+
     for var, description in optional.items():
         print(f"  • {var:25} → {description}")
+
 
 def generate_deployment_commands(username):
     """Génère les commandes de déploiement"""
     print_header("🚀 Commandes de déploiement")
-    
+
     commands = f"""
 # 1. Cloner le repository
 git clone https://github.com/jolu-bot/NyangaBudget.git
@@ -231,15 +238,16 @@ python3 -c "from app import app; print('✅ Import OK')"
 # 9. Tester
 curl https://{username}.pythonanywhere.com
 """
-    
+
     print(commands)
-    
+
     # Sauvegarder dans un fichier
     output_file = Path('deploy_commands.sh')
     with open(output_file, 'w') as f:
         f.write(commands.strip())
-    
+
     print(f"\n✅ Commandes sauvegardées dans : {output_file}")
+
 
 def main():
     """Fonction principale"""
@@ -311,10 +319,11 @@ def main():
         sys.exit(0)
     else:
         print("❌ Choix invalide !")
-    
-    print("\n" + "="*60)
+
+    print("\n" + "=" * 60)
     print("✅ Terminé !")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
+
 
 if __name__ == '__main__':
     try:
