@@ -2,71 +2,293 @@
 
 {% block title %}Notifications - NyangaBudget{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='forms-modern.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='dashboard-modern.css') }}">
+<style>
+.notif-card {
+    background: var(--glass-bg);
+    border-radius: 16px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 16px var(--glass-shadow);
+    backdrop-filter: blur(10px);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.notif-card:hover {
+    transform: translateX(8px);
+    box-shadow: 0 8px 24px var(--glass-shadow);
+}
+
+.notif-card.unread {
+    border-left: 4px solid #3b82f6;
+    background: linear-gradient(to right, rgba(59, 130, 246, 0.05), transparent);
+}
+
+.notif-card.critical {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05));
+    border-left-color: #ef4444;
+}
+
+.notif-card.high {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.05));
+    border-left-color: #f59e0b;
+}
+
+.notif-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.notif-icon.compte {
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(14, 165, 233, 0.1));
+    color: #06b6d4;
+}
+
+.notif-icon.famille {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.1));
+    color: #22c55e;
+}
+
+.notif-icon.heritage {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.1));
+    color: #f59e0b;
+}
+
+.notif-icon.coffre {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.1));
+    color: #3b82f6;
+}
+
+.notif-icon.budget {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.1));
+    color: #ef4444;
+}
+
+.notif-icon.alerte {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.1));
+    color: #f59e0b;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.9; }
+}
+
+.notif-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notif-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--bs-body-color);
+}
+
+.notif-message {
+    color: #6b7280;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+[data-theme="dark"] .notif-message {
+    color: #9ca3af;
+}
+
+.notif-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.priority-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.priority-badge.critical {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.1));
+    color: #dc2626;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.priority-badge.high {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.1));
+    color: #d97706;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.priority-badge.normal {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.1));
+    color: #2563eb;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.priority-badge.low {
+    background: linear-gradient(135deg, rgba(107, 114, 128, 0.2), rgba(75, 85, 99, 0.1));
+    color: #4b5563;
+    border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
+.type-badge {
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: rgba(0,0,0,0.05);
+    color: #4b5563;
+}
+
+[data-theme="dark"] .type-badge {
+    background: rgba(255,255,255,0.05);
+    color: #d1d5db;
+}
+
+.notif-time {
+    font-size: 0.85rem;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.notif-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.empty-notifications {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--glass-bg);
+    border-radius: 20px;
+    border: 2px dashed var(--glass-border);
+}
+
+.empty-icon {
+    font-size: 5rem;
+    color: #9ca3af;
+    margin-bottom: 1.5rem;
+    animation: swing 3s ease-in-out infinite;
+}
+
+@keyframes swing {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(15deg); }
+    75% { transform: rotate(-15deg); }
+}
+
+.info-card {
+    background: var(--glass-bg);
+    border-radius: 16px;
+    border: 1px solid var(--glass-border);
+    padding: 1.5rem;
+    margin-top: 2rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.legend-item:last-child {
+    margin-bottom: 0;
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="mb-4">
-    <h2 class="text-primary">
+<div class="dashboard-header mb-4">
+    <h2>
         <i class="bi bi-bell me-2"></i>Centre de Notifications
     </h2>
-    <p class="text-muted">Restez informé de toutes vos activités</p>
+    <p>Restez informé de toutes vos activités financières</p>
 </div>
 
 {% if notifications %}
     <!-- Liste des notifications -->
-    <div class="list-group">
+    <div class="notifications-list">
         {% for notif in notifications %}
-        <div class="list-group-item
-                    {% if notif.priorite == 'critique' %}bg-danger bg-opacity-10
-                    {% elif notif.priorite == 'haute' %}bg-warning bg-opacity-10
-                    {% else %}bg-light
+        <div class="notif-card 
+                    {% if not notif.lue %}unread{% endif %}
+                    {% if notif.priorite == 'critique' %}critical{% elif notif.priorite == 'haute' %}high{% endif %}
+                    animate-fade-in animate-delay-{{ loop.index % 4 }}">
+            <div class="d-flex gap-3">
+                <!-- Icône selon le type -->
+                <div class="notif-icon 
+                            {% if notif.type_notif == 'compte' %}compte
+                            {% elif notif.type_notif == 'famille' %}famille
+                            {% elif notif.type_notif == 'heritage' %}heritage
+                            {% elif notif.type_notif == 'coffre' %}coffre
+                            {% elif notif.type_notif == 'budget' %}budget
+                            {% elif notif.type_notif == 'alerte' %}alerte
+                            {% endif %}">
+                    {% if notif.type_notif == 'compte' %}
+                        <i class="bi bi-bank"></i>
+                    {% elif notif.type_notif == 'famille' %}
+                        <i class="bi bi-people"></i>
+                    {% elif notif.type_notif == 'heritage' %}
+                        <i class="bi bi-gift"></i>
+                    {% elif notif.type_notif == 'coffre' %}
+                        <i class="bi bi-shield-lock"></i>
+                    {% elif notif.type_notif == 'budget' %}
+                        <i class="bi bi-calculator"></i>
+                    {% elif notif.type_notif == 'alerte' %}
+                        <i class="bi bi-exclamation-triangle"></i>
+                    {% else %}
+                        <i class="bi bi-info-circle"></i>
                     {% endif %}
-                    {% if not notif.lue %}border-start border-5 border-primary{% endif %}">
-            <div class="d-flex w-100 justify-content-between align-items-start">
-                <div class="flex-grow-1">
-                    <div class="d-flex align-items-center mb-2">
-                        <!-- Icône selon le type -->
-                        {% if notif.type_notif == 'compte' %}
-                            <i class="bi bi-bank fs-4 text-info me-3"></i>
-                        {% elif notif.type_notif == 'famille' %}
-                            <i class="bi bi-people fs-4 text-success me-3"></i>
-                        {% elif notif.type_notif == 'heritage' %}
-                            <i class="bi bi-gift fs-4 text-warning me-3"></i>
-                        {% elif notif.type_notif == 'coffre' %}
-                            <i class="bi bi-shield-lock fs-4 text-primary me-3"></i>
-                        {% elif notif.type_notif == 'budget' %}
-                            <i class="bi bi-calculator fs-4 text-danger me-3"></i>
-                        {% elif notif.type_notif == 'alerte' %}
-                            <i class="bi bi-exclamation-triangle fs-4 text-warning me-3"></i>
-                        {% else %}
-                            <i class="bi bi-info-circle fs-4 text-secondary me-3"></i>
-                        {% endif %}
+                </div>
 
-                        <h5 class="mb-0">{{ notif.titre }}</h5>
-                    </div>
+                <!-- Contenu -->
+                <div class="notif-content">
+                    <h5 class="notif-title">{{ notif.titre }}</h5>
+                    <p class="notif-message">{{ notif.message }}</p>
 
-                    <p class="mb-2 ms-5">{{ notif.message }}</p>
-
-                    <div class="d-flex align-items-center gap-3 ms-5">
+                    <div class="notif-meta">
                         <!-- Badge de priorité -->
                         {% if notif.priorite == 'critique' %}
-                            <span class="badge bg-danger">
-                                <i class="bi bi-exclamation-triangle-fill me-1"></i>Critique
+                            <span class="priority-badge critical">
+                                <i class="bi bi-exclamation-triangle-fill"></i>Critique
                             </span>
                         {% elif notif.priorite == 'haute' %}
-                            <span class="badge bg-warning text-dark">
-                                <i class="bi bi-exclamation-circle-fill me-1"></i>Haute
+                            <span class="priority-badge high">
+                                <i class="bi bi-exclamation-circle-fill"></i>Haute
                             </span>
                         {% elif notif.priorite == 'normale' %}
-                            <span class="badge bg-primary">
-                                <i class="bi bi-info-circle-fill me-1"></i>Normale
+                            <span class="priority-badge normal">
+                                <i class="bi bi-info-circle-fill"></i>Normale
                             </span>
                         {% else %}
-                            <span class="badge bg-secondary">
-                                <i class="bi bi-dash-circle-fill me-1"></i>Basse
+                            <span class="priority-badge low">
+                                <i class="bi bi-dash-circle-fill"></i>Basse
                             </span>
                         {% endif %}
 
                         <!-- Type de notification -->
-                        <span class="badge bg-light text-dark">
+                        <span class="type-badge">
                             {% if notif.type_notif == 'compte' %}Compte
                             {% elif notif.type_notif == 'famille' %}Famille
                             {% elif notif.type_notif == 'heritage' %}Héritage
@@ -77,16 +299,9 @@
                             {% endif %}
                         </span>
 
-                        <!-- Lien si disponible -->
-                        {% if notif.lien %}
-                        <a href="{{ notif.lien }}" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-arrow-right-circle me-1"></i>Voir
-                        </a>
-                        {% endif %}
-
                         <!-- Timestamp -->
-                        <small class="text-muted ms-auto">
-                            <i class="bi bi-clock me-1"></i>
+                        <span class="notif-time">
+                            <i class="bi bi-clock"></i>
                             {% if (now - notif.date_creation).total_seconds() < 60 %}
                                 Il y a quelques secondes
                             {% elif (now - notif.date_creation).total_seconds() < 3600 %}
@@ -100,28 +315,36 @@
                             {% else %}
                                 {{ notif.date_creation.strftime('%d/%m/%Y %H:%M') }}
                             {% endif %}
-                        </small>
+                        </span>
+
+                        <!-- Lien si disponible -->
+                        {% if notif.lien %}
+                        <a href="{{ notif.lien }}" class="btn-modern btn-modern-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
+                            <i class="bi bi-arrow-right-circle me-1"></i>Voir
+                        </a>
+                        {% endif %}
                     </div>
                 </div>
 
-                <!-- Bouton de suppression -->
-                <form method="POST" action="{{ url_for('marquer_notif_lue', id=notif.id) }}"
-                      style="display: inline;" class="ms-2">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                    <button type="submit" class="btn btn-sm btn-outline-secondary" title="Marquer comme lu">
-                        <i class="bi bi-check2"></i>
-                    </button>
-                </form>
+                <!-- Actions -->
+                <div class="notif-actions">
+                    <form method="POST" action="{{ url_for('marquer_notif_lue', id=notif.id) }}" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="btn-modern btn-modern-outline" style="padding: 0.5rem;" title="Marquer comme lu">
+                            <i class="bi bi-check2"></i>
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
         {% endfor %}
     </div>
 
-    <!-- Pagination ou bouton "Tout marquer comme lu" -->
-    <div class="mt-4 text-center">
+    <!-- Bouton tout marquer comme lu -->
+    <div class="text-center mt-4">
         <form method="POST" action="{{ url_for('marquer_toutes_lues') }}" style="display: inline;">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <button type="submit" class="btn btn-outline-primary">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn-modern btn-modern-primary">
                 <i class="bi bi-check-all me-2"></i>Tout marquer comme lu
             </button>
         </form>
@@ -129,32 +352,52 @@
 
 {% else %}
     <!-- Aucune notification -->
-    <div class="card shadow-sm">
-        <div class="card-body text-center text-muted py-5">
-            <i class="bi bi-bell-slash" style="font-size: 3rem;"></i>
-            <p class="mt-3">Aucune notification pour le moment.</p>
-            <p class="small">Vous serez informé ici de toutes les activités importantes.</p>
+    <div class="empty-notifications animate-fade-in">
+        <div class="empty-icon">
+            <i class="bi bi-bell-slash"></i>
         </div>
+        <h4>Aucune notification</h4>
+        <p class="text-muted mb-0">
+            Vous serez informé ici de toutes les activités importantes :<br>
+            Alertes budget, changements de compte, activités familiales, etc.
+        </p>
     </div>
 {% endif %}
 
 <!-- Légende des priorités -->
-<div class="card shadow-sm mt-4 bg-light">
-    <div class="card-body">
-        <h6 class="text-muted mb-3">
-            <i class="bi bi-info-circle me-2"></i>À propos des notifications
-        </h6>
-        <ul class="small mb-0">
-            <li><span class="badge bg-danger">Critique</span> - Nécessite une action immédiate</li>
-            <li><span class="badge bg-warning text-dark">Haute</span> - Important, à traiter rapidement</li>
-            <li><span class="badge bg-primary">Normale</span> - Information standard</li>
-            <li><span class="badge bg-secondary">Basse</span> - Information non urgente</li>
-        </ul>
-        <hr>
-        <p class="small text-muted mb-0">
-            Les notifications non lues sont indiquées par une barre bleue sur le côté gauche.
-        </p>
+<div class="info-card animate-fade-in">
+    <h6 class="mb-3">
+        <i class="bi bi-info-circle me-2"></i>À propos des notifications
+    </h6>
+    <div class="legend-item">
+        <span class="priority-badge critical">
+            <i class="bi bi-exclamation-triangle-fill"></i>Critique
+        </span>
+        <span class="text-muted">Nécessite une action immédiate</span>
     </div>
+    <div class="legend-item">
+        <span class="priority-badge high">
+            <i class="bi bi-exclamation-circle-fill"></i>Haute
+        </span>
+        <span class="text-muted">Important, à traiter rapidement</span>
+    </div>
+    <div class="legend-item">
+        <span class="priority-badge normal">
+            <i class="bi bi-info-circle-fill"></i>Normale
+        </span>
+        <span class="text-muted">Information standard</span>
+    </div>
+    <div class="legend-item">
+        <span class="priority-badge low">
+            <i class="bi bi-dash-circle-fill"></i>Basse
+        </span>
+        <span class="text-muted">Information non urgente</span>
+    </div>
+    <hr>
+    <p class="text-muted small mb-0">
+        <i class="bi bi-lightbulb me-2"></i>
+        Les notifications non lues sont indiquées par une barre bleue sur le côté gauche et un fond légèrement coloré.
+    </p>
 </div>
 
 {% endblock %}
