@@ -37,6 +37,7 @@
     border-radius: 16px;
     border: 1px solid var(--glass-border);
     box-shadow: 0 8px 32px var(--glass-shadow);
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     height: 100%;
@@ -156,6 +157,7 @@
 
 .modal-modern .modal-content {
     background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
     border-radius: 20px;
     border: 1px solid var(--glass-border);
@@ -305,7 +307,7 @@
                               style="display: inline;"
                               onsubmit="return confirm('Supprimer ce document crypté ?');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                            <button type="submit" class="btn-modern btn-modern-danger">
+                            <button type="submit" class="btn-modern btn-modern-danger" aria-label="Supprimer le document">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </form>

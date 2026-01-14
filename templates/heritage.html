@@ -111,7 +111,7 @@
                                       style="display: inline;"
                                       onsubmit="return confirm('Supprimer ce bien ?');">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Supprimer le bien">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
@@ -128,14 +128,14 @@
                                     <h5 class="modal-title">
                                         <i class="bi bi-person-plus me-2"></i>Ajouter un bénéficiaire
                                     </h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                                 </div>
                                 <form method="POST" action="{{ url_for('add_beneficiaire', heritage_id=heritage.id) }}">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                     <div class="modal-body">
                                         <div class="mb-3">
                                             <label class="form-label">Bénéficiaire <span class="text-danger">*</span></label>
-                                            <select class="form-select" name="beneficiaire_id" required>
+                                            <select class="form-select" name="beneficiaire_id" required aria-label="Sélectionner un bénéficiaire">
                                                 <option value="">Sélectionnez...</option>
                                                 {% for membre in membres_disponibles %}
                                                 <option value="{{ membre.id }}">{{ membre.nom }}</option>
@@ -146,17 +146,17 @@
                                         <div class="mb-3">
                                             <label class="form-label">Pourcentage <span class="text-danger">*</span></label>
                                             <input type="number" class="form-control" name="pourcentage"
-                                                   min="1" max="100" required>
+                                                   min="1" max="100" required aria-label="Pourcentage d'héritage">
                                         </div>
 
                                         <div class="mb-3">
                                             <label class="form-label">Message personnel</label>
-                                            <textarea class="form-control" name="message_personnel" rows="3"></textarea>
+                                            <textarea class="form-control" name="message_personnel" rows="3" aria-label="Message personnel"></textarea>
                                         </div>
 
                                         <div class="mb-3">
                                             <label class="form-label">Condition de déblocage</label>
-                                            <select class="form-select" name="condition_deblocage">
+                                            <select class="form-select" name="condition_deblocage" aria-label="Sélectionner la condition de déblocage">
                                                 <option value="inactivite_30j">Inactivité 30 jours</option>
                                                 <option value="deces">Décès</option>
                                                 <option value="urgence">Urgence</option>
