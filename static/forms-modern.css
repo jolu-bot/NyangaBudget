@@ -32,6 +32,7 @@
     border-radius: 20px;
     border: 1px solid var(--glass-border);
     box-shadow: 0 8px 32px var(--glass-shadow);
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     overflow: hidden;
     transition: var(--transition-smooth);
@@ -199,6 +200,7 @@
     border: 1px solid var(--glass-border);
     box-shadow: 0 4px 16px var(--glass-shadow);
     padding: 1.5rem;
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
 }
 
@@ -250,6 +252,7 @@
     border-radius: 20px;
     border: 1px solid var(--glass-border);
     box-shadow: 0 8px 32px var(--glass-shadow);
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     overflow: hidden;
 }
