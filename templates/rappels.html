@@ -2,17 +2,22 @@
 
 {% block title %}Rappels & Échéances - NyangaBudget{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='forms-modern.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='dashboard-modern.css') }}">
+{% endblock %}
+
 {% block content %}
-<div class="mb-4">
-    <h2 class="text-primary">
+<div class="dashboard-header mb-4">
+    <h2>
         <i class="bi bi-alarm me-2"></i>Rappels & Échéances
     </h2>
-    <p class="text-muted">Gérez vos paiements et échéances importantes</p>
+    <p>Gérez vos paiements et échéances importantes</p>
 </div>
 
 <!-- Bouton Ajouter un rappel -->
 <div class="mb-4">
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRappelModal">
+    <button class="btn-modern btn-modern-primary" data-bs-toggle="modal" data-bs-target="#addRappelModal">
         <i class="bi bi-plus-circle me-2"></i>Nouveau rappel
     </button>
 </div>
