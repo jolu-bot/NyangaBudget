@@ -235,9 +235,10 @@ Dans l'onglet **Web** :
 
 1. Ouvrir : `https://VOTRE_USERNAME.pythonanywhere.com`
 2. Vérifier que la page d'accueil s'affiche
-3. Tester la connexion avec le compte par défaut :
-   - Email : `admin@nyanga.cm`
-   - Mot de passe : `admin123`
+3. Créer votre premier compte administrateur :
+   - Cliquer sur "S'inscrire"
+   - Remplir le formulaire d'inscription
+   - Se connecter avec vos identifiants
 
 ### 6.3 Vérifier les logs en cas d'erreur
 

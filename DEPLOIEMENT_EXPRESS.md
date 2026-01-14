@@ -101,7 +101,8 @@ application.config['DEBUG'] = False
 ### 4️⃣ Lancement
 - **Reload** app (bouton vert Web tab)
 - Ouvrir : `https://USERNAME.pythonanywhere.com`
-- Login : `admin@nyanga.cm` / `admin123`
+- Cliquer sur "S'inscrire" pour créer votre compte admin
+- Se connecter avec vos identifiants
 
 ---
 
@@ -119,7 +120,8 @@ application.config['DEBUG'] = False
 - [ ] Chemins configurés (3 champs)
 - [ ] Static files mappés (2 lignes)
 - [ ] App Reloadée
-- [ ] Site accessible et login fonctionne
+- [ ] Site accessible et inscription fonctionne
+- [ ] Premier compte créé avec succès
 
 ---
 
@@ -159,9 +161,9 @@ Si besoin de plus de détails :
 ## 🎉 Terminé !
 
 **URL** : `https://USERNAME.pythonanywhere.com`  
-**Login** : `admin@nyanga.cm` / `admin123`
+**Créez votre compte** : Cliquez sur "S'inscrire" pour commencer
 
-⚠️ **Changer le mot de passe admin après premier login !**
+⚠️ **Le premier compte créé devient administrateur**
 
 ---
 

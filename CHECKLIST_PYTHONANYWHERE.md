@@ -117,9 +117,9 @@
 - [ ] Page d'accueil s'affiche
 - [ ] CSS modernes chargés (pas de design cassé)
 - [ ] Login accessible
-- [ ] Connexion admin fonctionne :
-  - Email : `admin@nyanga.cm`
-  - Mot de passe : `admin123`
+- [ ] Inscription accessible
+- [ ] Création du premier compte admin réussie
+- [ ] Connexion avec nouveau compte fonctionne
 - [ ] Dashboard s'affiche après login
 - [ ] Navbar moderne visible
 - [ ] Footer visible

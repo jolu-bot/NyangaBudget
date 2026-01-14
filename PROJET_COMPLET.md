@@ -38,9 +38,10 @@ python app.py
 
 Ouvrir : http://localhost:5000
 
-**Identifiants par défaut** :
-- Email : `admin@nyanga.cm`
-- Mot de passe : `admin123`
+**Première utilisation** :
+- Cliquer sur "S'inscrire"
+- Créer votre compte administrateur
+- Le premier compte devient automatiquement admin
 
 ### Pour Déploiement Production
 

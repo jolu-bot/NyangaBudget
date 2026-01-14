@@ -215,13 +215,13 @@ python deploy_helper.py
 - `DEBUG = False` en production
 - `SECRET_KEY` unique et complexe
 
-### Compte Admin Par Défaut
+### Compte Administrateur
 
-**⚠️ IMPORTANT** : Changer le mot de passe admin après premier déploiement !
+**⚠️ IMPORTANT** : Créez votre premier compte administrateur lors de la première visite !
 
-Identifiants par défaut :
-- Email : `admin@nyanga.cm`
-- Mot de passe : `admin123`
+- Cliquez sur "S'inscrire" sur la page d'accueil
+- Le premier compte créé devient automatiquement administrateur
+- Utilisez un mot de passe fort et sécurisé
 
 ---
 
@@ -344,10 +344,11 @@ cp data/nyanga.db data/backups/nyanga_$(date +%Y%m%d).db
 
 ### Validation
 1. ✅ Ouvrir `https://USERNAME.pythonanywhere.com`
-2. ✅ Tester login admin
-3. ✅ Vérifier design moderne
-4. ✅ Créer quelques données de test
-5. ✅ Partager l'URL !
+2. ✅ Cliquer sur "S'inscrire"
+3. ✅ Créer votre compte administrateur
+4. ✅ Vérifier design moderne
+5. ✅ Créer quelques données de test
+6. ✅ Partager l'URL !
 
 ### Communication
 - Informer l'équipe du déploiement

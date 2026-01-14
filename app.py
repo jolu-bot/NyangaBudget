@@ -1,24 +1,4 @@
 # NyangaBudget 2.0 - Plateforme Familiale de Gestion Financière & Patrimoniale
-#
-# INSTRUCTIONS DE DÉMARRAGE (Windows):
-# 1. Créer environnement virtuel: python -m venv .venv
-# 2. Activer l'environnement: .venv\Scripts\activate
-# 3. Installer dépendances: pip install -r requirements.txt
-# 4. Lancer l'application: python app.py
-# 5. Ouvrir navigateur: http://localhost:5000
-#
-# COMPTE PAR DÉFAUT:
-# - Email: admin@nyanga.cm
-# - Mot de passe: admin123
-#
-# FONCTIONNALITÉS RÉVOLUTIONNAIRES:
-# ✅ Multi-Comptes Bancaires avec transferts
-# ✅ Coffre-Fort Numérique crypté (AES-256)
-# ✅ Héritage Familial avec testament numérique
-# ✅ Gestion Familiale avec invitations sécurisées
-# ✅ IA Prédictive & Score de santé financière
-# ✅ Notifications en temps réel
-# ✅ QR Code d'invitation familiale
 from flask_caching import Cache
 import hashlib
 from image_optimizer import ImageOptimizer
@@ -3583,18 +3563,6 @@ def init_db():
                 f"[WARNING] Erreur migration blockchain (non bloquante): {str(e)}")
             db.session.rollback()
 
-        # Créer utilisateur admin par défaut s'il n'existe pas
-        if not User.query.filter_by(email='admin@nyanga.cm').first():
-            admin = User(nom='Administrateur', email='admin@nyanga.cm')
-            admin.set_password('admin123')
-            db.session.add(admin)
-            db.session.commit()
-
-            # Créer catégories par défaut pour admin
-            creer_categories_defaut(admin.id)
-
-            print("[OK] Utilisateur admin cree: admin@nyanga.cm / admin123")
-
         print("[OK] Base de donnees initialisee")
 
 
@@ -3994,15 +3962,14 @@ if __name__ == '__main__':
         print("NyangaBudget - Application demarree!")
         print("=" * 50)
         print("URL: http://localhost:5000")
-        print("Compte admin: admin@nyanga.cm / admin123")
         print("Dashboard: http://localhost:5000/dashboard")
         print("API REST: http://localhost:5000/api/v1/auth/login")
         print("=" * 50 + "\n")
 
-    # Désactiver le reloader en développement pour éviter les crashes
+    # Configuration production optimisée
     app.run(
-        debug=False,  # Mode debug désactivé pour stabilité
-        use_reloader=False,  # Pas de rechargement automatique
+        debug=False,
+        use_reloader=False,
         host='0.0.0.0',
         port=int(os.environ.get('PORT', 5000)),
         threaded=True
