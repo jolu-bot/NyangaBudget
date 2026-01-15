@@ -602,7 +602,6 @@ class Rappel(db.Model):
     description = db.Column(db.Text)
     montant = db.Column(db.Float)
     date_echeance = db.Column(db.DateTime, nullable=False)
-    date_rappel = db.Column(db.DateTime)  # Date du rappel avant échéance
     # paiement, facture, echeance, autre
     type_rappel = db.Column(db.String(50), default='paiement')
     est_recurrent = db.Column(db.Boolean, default=False)
@@ -3736,15 +3735,15 @@ def api_check_reminders():
     # Rappels dans les prochaines 24h non encore notifiés
     reminders = Rappel.query.filter(
         Rappel.user_id == current_user.id,
-        Rappel.date_rappel <= tomorrow,
-        Rappel.date_rappel >= now,
+        Rappel.date_echeance <= tomorrow,
+        Rappel.date_echeance >= now,
         Rappel.notifie.is_(False)
     ).all()
 
     results = [{
         'id': r.id,
         'titre': r.titre,
-        'date': r.date_rappel.strftime('%d/%m/%Y %H:%M')
+        'date': r.date_echeance.strftime('%d/%m/%Y %H:%M')
     } for r in reminders]
 
     # Marquer comme notifiés
