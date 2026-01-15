@@ -2647,9 +2647,13 @@ def delete_compte(id):
 @login_required
 def coffre_fort():
     """Page du coffre-fort numérique"""
-    documents = CoffreFort.query.filter_by(user_id=current_user.id).order_by(
-        CoffreFort.est_critique.desc(), CoffreFort.date_modified.desc()).all()
-    return render_template('coffre_fort.html', documents=documents)
+    try:
+        documents = CoffreFort.query.filter_by(user_id=current_user.id).order_by(
+            CoffreFort.est_critique.desc(), CoffreFort.date_modified.desc()).all()
+        return render_template('coffre_fort.html', documents=documents)
+    except Exception as e:
+        flash(f'Erreur lors du chargement du coffre-fort: {str(e)}', 'danger')
+        return render_template('coffre_fort.html', documents=[])
 
 
 @app.route('/add_coffre', methods=['POST'])
@@ -2761,22 +2765,26 @@ def delete_coffre(id):
 @login_required
 def heritage():
     """Page de gestion de l'héritage"""
-    heritages = Heritage.query.filter_by(user_id=current_user.id).order_by(
-        Heritage.date_created.desc()).all()
+    try:
+        heritages = Heritage.query.filter_by(user_id=current_user.id).order_by(
+            Heritage.date_created.desc()).all()
 
-    # Récupérer les membres de famille pour sélection bénéficiaires
-    mes_familles = MembreFamille.query.filter_by(
-        user_id=current_user.id, statut='valide').all()
-    membres_disponibles = []
-    for mf in mes_familles:
-        autres_membres = MembreFamille.query.filter_by(famille_id=mf.famille_id, statut='valide').filter(
-            MembreFamille.user_id != current_user.id).all()
-        for membre in autres_membres:
-            if membre.user not in membres_disponibles:
-                membres_disponibles.append(membre.user)
+        # Récupérer les membres de famille pour sélection bénéficiaires
+        mes_familles = MembreFamille.query.filter_by(
+            user_id=current_user.id, statut='valide').all()
+        membres_disponibles = []
+        for mf in mes_familles:
+            autres_membres = MembreFamille.query.filter_by(famille_id=mf.famille_id, statut='valide').filter(
+                MembreFamille.user_id != current_user.id).all()
+            for membre in autres_membres:
+                if membre.user not in membres_disponibles:
+                    membres_disponibles.append(membre.user)
 
-    return render_template('heritage.html', heritages=heritages,
-                           membres_disponibles=membres_disponibles)
+        return render_template('heritage.html', heritages=heritages,
+                               membres_disponibles=membres_disponibles)
+    except Exception as e:
+        flash(f'Erreur lors du chargement de l\'héritage: {str(e)}', 'danger')
+        return render_template('heritage.html', heritages=[], membres_disponibles=[])
 
 
 @app.route('/add_heritage', methods=['POST'])
