@@ -607,7 +607,6 @@ class Rappel(db.Model):
     est_recurrent = db.Column(db.Boolean, default=False)
     frequence = db.Column(db.String(20))  # mensuel, hebdomadaire, annuel
     est_complete = db.Column(db.Boolean, default=False)
-    notifie = db.Column(db.Boolean, default=False)  # Pour éviter notifs multiples
     date_completed = db.Column(db.DateTime)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -3732,12 +3731,12 @@ def api_check_reminders():
     now = datetime.now()
     tomorrow = now + timedelta(days=1)
 
-    # Rappels dans les prochaines 24h non encore notifiés
+    # Rappels actifs dans les prochaines 24h
     reminders = Rappel.query.filter(
         Rappel.user_id == current_user.id,
         Rappel.date_echeance <= tomorrow,
         Rappel.date_echeance >= now,
-        Rappel.notifie.is_(False)
+        Rappel.est_complete.is_(False)
     ).all()
 
     results = [{
@@ -3745,11 +3744,6 @@ def api_check_reminders():
         'titre': r.titre,
         'date': r.date_echeance.strftime('%d/%m/%Y %H:%M')
     } for r in reminders]
-
-    # Marquer comme notifiés
-    for r in reminders:
-        r.notifie = True
-    db.session.commit()
 
     return jsonify({'reminders': results})
 
