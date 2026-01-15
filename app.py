@@ -2904,25 +2904,32 @@ def delete_heritage(id):
 @login_required
 def famille():
     """Page de gestion familiale"""
-    # Familles dont je suis chef
-    mes_familles_chef = Famille.query.filter_by(
-        chef_famille_id=current_user.id).all()
+    try:
+        # Familles dont je suis chef
+        mes_familles_chef = Famille.query.filter_by(
+            chef_famille_id=current_user.id).all()
 
-    # Familles dont je suis membre
-    mes_appartenances = MembreFamille.query.filter_by(
-        user_id=current_user.id, statut='valide').all()
+        # Familles dont je suis membre
+        mes_appartenances = MembreFamille.query.filter_by(
+            user_id=current_user.id, statut='valide').all()
 
-    # Demandes en attente de validation (si je suis chef)
-    demandes_attente = []
-    for fam in mes_familles_chef:
-        demandes = MembreFamille.query.filter_by(
-            famille_id=fam.id, statut='en_attente').all()
-        demandes_attente.extend(demandes)
+        # Demandes en attente de validation (si je suis chef)
+        demandes_attente = []
+        for fam in mes_familles_chef:
+            demandes = MembreFamille.query.filter_by(
+                famille_id=fam.id, statut='en_attente').all()
+            demandes_attente.extend(demandes)
 
-    return render_template('famille.html',
-                           mes_familles_chef=mes_familles_chef,
-                           mes_appartenances=mes_appartenances,
-                           demandes_attente=demandes_attente)
+        return render_template('famille.html',
+                               mes_familles_chef=mes_familles_chef,
+                               mes_appartenances=mes_appartenances,
+                               demandes_attente=demandes_attente)
+    except Exception as e:
+        flash(f'Erreur lors du chargement: {str(e)}', 'danger')
+        return render_template('famille.html',
+                               mes_familles_chef=[],
+                               mes_appartenances=[],
+                               demandes_attente=[])
 
 
 @app.route('/create_famille', methods=['POST'])
