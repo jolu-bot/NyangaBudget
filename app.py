@@ -3233,20 +3233,33 @@ def api_notifications_count():
 @login_required
 def rappels():
     """Page de gestion des rappels"""
-    rappels_actifs = Rappel.query.filter_by(
-        user_id=current_user.id, est_complete=False).order_by(Rappel.date_echeance).all()
-    rappels_completes = Rappel.query.filter_by(user_id=current_user.id, est_complete=True).order_by(
-        Rappel.date_completed.desc()).limit(10).all()
+    try:
+        rappels_actifs = Rappel.query.filter_by(
+            user_id=current_user.id, est_complete=False).order_by(Rappel.date_echeance).all()
+        
+        # Essayer d'ordonner par date_completed, sinon par date_created
+        try:
+            rappels_completes = Rappel.query.filter_by(user_id=current_user.id, est_complete=True).order_by(
+                Rappel.date_completed.desc()).limit(10).all()
+        except Exception:
+            rappels_completes = Rappel.query.filter_by(user_id=current_user.id, est_complete=True).order_by(
+                Rappel.date_created.desc()).limit(10).all()
 
-    # Déterminer les rappels en retard et à venir
-    now = datetime.now()
-    rappels_urgents = [r for r in rappels_actifs if r.date_echeance < now]
-    rappels_a_venir = [r for r in rappels_actifs if r.date_echeance >= now]
+        # Déterminer les rappels en retard et à venir
+        now = datetime.now()
+        rappels_urgents = [r for r in rappels_actifs if r.date_echeance < now]
+        rappels_a_venir = [r for r in rappels_actifs if r.date_echeance >= now]
 
-    return render_template('rappels.html',
-                           rappels_urgents=rappels_urgents,
-                           rappels_a_venir=rappels_a_venir,
-                           rappels_completes=rappels_completes)
+        return render_template('rappels.html',
+                               rappels_urgents=rappels_urgents,
+                               rappels_a_venir=rappels_a_venir,
+                               rappels_completes=rappels_completes)
+    except Exception as e:
+        flash(f'Erreur lors du chargement des rappels: {str(e)}', 'danger')
+        return render_template('rappels.html',
+                               rappels_urgents=[],
+                               rappels_a_venir=[],
+                               rappels_completes=[])
 
 
 @app.route('/add_rappel', methods=['POST'])
