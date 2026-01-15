@@ -3253,7 +3253,7 @@ def rappels():
     try:
         rappels_actifs = Rappel.query.filter_by(
             user_id=current_user.id, est_complete=False).order_by(Rappel.date_echeance).all()
-        
+
         # Essayer d'ordonner par date_completed, sinon par date_created
         try:
             rappels_completes = Rappel.query.filter_by(user_id=current_user.id, est_complete=True).order_by(
