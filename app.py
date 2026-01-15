@@ -1555,17 +1555,21 @@ def calculer_score_sante_financiere(user_id):
 def creer_notification(user_id, type_notif, titre,
                        message, lien=None, priorite='normale'):
     """Crée une notification pour un utilisateur"""
-    notif = Notification(
-        user_id=user_id,
-        type_notif=type_notif,
-        titre=titre,
-        message=message,
-        lien=lien,
-        priorite=priorite
-    )
-    db.session.add(notif)
-    db.session.commit()
-    return notif
+    try:
+        notif = Notification(
+            user_id=user_id,
+            type_notif=type_notif,
+            titre=titre,
+            message=message,
+            lien=lien,
+            priorite=priorite
+        )
+        db.session.add(notif)
+        db.session.commit()
+        return notif
+    except Exception:
+        db.session.rollback()
+        return None
 
 
 def generer_qr_code_invitation(code_invitation):
@@ -3300,14 +3304,17 @@ def add_rappel():
         db.session.commit()
         flash(f'Rappel "{titre}" créé avec succès!', 'success')
 
-        # Créer notification
-        jours_restants = (date_echeance - datetime.now()).days
-        creer_notification(current_user.id, 'alerte', 'Nouveau rappel',
-                           f'Rappel "{titre}" prévu dans {jours_restants} jours',
-                           url_for('rappels'), 'normale')
+        # Créer notification (optionnel, ne doit pas bloquer)
+        try:
+            jours_restants = (date_echeance - datetime.now()).days
+            creer_notification(current_user.id, 'alerte', 'Nouveau rappel',
+                               f'Rappel "{titre}" prévu dans {jours_restants} jours',
+                               url_for('rappels'), 'normale')
+        except Exception:
+            pass  # Si notification échoue, ce n'est pas critique
     except Exception as e:
         db.session.rollback()
-        flash(f'Erreur: {str(e)}', 'danger')
+        flash(f'Erreur lors de la création du rappel: {str(e)}', 'danger')
 
     return redirect(url_for('rappels'))
 
