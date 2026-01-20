@@ -3232,7 +3232,8 @@ def notifications():
     db.session.commit()
 
     return render_template('notifications.html',
-                           notifications=notifications_list)
+                           notifications=notifications_list,
+                           now=datetime.now())
 
 
 @app.route('/api/notifications/count')
