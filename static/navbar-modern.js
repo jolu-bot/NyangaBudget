@@ -9,11 +9,34 @@ document.addEventListener('DOMContentLoaded', function() {
         const button = dropdown.querySelector('.nav-link-modern');
         const menu = dropdown.querySelector('.dropdown-menu-modern');
         let timeoutId;
+        let isOpen = false;
         
         if (button && menu) {
+            // Toggle dropdown on click
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                isOpen = !isOpen;
+                
+                if (isOpen) {
+                    menu.style.opacity = '1';
+                    menu.style.visibility = 'visible';
+                    menu.style.transform = 'translateY(0)';
+                    menu.style.pointerEvents = 'auto';
+                    menu.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                } else {
+                    menu.style.opacity = '0';
+                    menu.style.visibility = 'hidden';
+                    menu.style.transform = 'translateY(-10px)';
+                    menu.style.pointerEvents = 'none';
+                    menu.style.transition = 'opacity 0.3s ease, transform 0.3s ease, visibility 0s linear 0.3s';
+                }
+            });
+            
             // Show dropdown on hover
             const showDropdown = () => {
                 clearTimeout(timeoutId);
+                isOpen = true;
                 menu.style.opacity = '1';
                 menu.style.visibility = 'visible';
                 menu.style.transform = 'translateY(0)';
@@ -24,6 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Hide dropdown with delay
             const hideDropdown = () => {
                 timeoutId = setTimeout(() => {
+                    isOpen = false;
                     menu.style.opacity = '0';
                     menu.style.visibility = 'hidden';
                     menu.style.transform = 'translateY(-10px)';
@@ -37,6 +61,17 @@ document.addEventListener('DOMContentLoaded', function() {
             button.addEventListener('mouseenter', showDropdown);
             menu.addEventListener('mouseenter', () => clearTimeout(timeoutId));
             menu.addEventListener('mouseleave', hideDropdown);
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!dropdown.contains(e.target) && isOpen) {
+                    isOpen = false;
+                    menu.style.opacity = '0';
+                    menu.style.visibility = 'hidden';
+                    menu.style.transform = 'translateY(-10px)';
+                    menu.style.pointerEvents = 'none';
+                }
+            });
         }
     });
     
